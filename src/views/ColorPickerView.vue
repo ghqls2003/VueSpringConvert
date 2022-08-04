@@ -1,17 +1,17 @@
 <template>
-  <div class="about">
-    <TrTyStat />
+  <div>
+    <ColorPicker />
   </div>
 </template>
 
 <script>
 // @ is an alias to /src
-import TrTyStat from '@/components/TrTyStat.vue'
+import ColorPicker from '@/components/picker/ColorPicker.vue'
 
 export default {
   name: 'AboutView',
   components: {
-    TrTyStat
+    ColorPicker
   }
 }
 </script>

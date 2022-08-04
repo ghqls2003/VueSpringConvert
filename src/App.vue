@@ -25,13 +25,19 @@
         </v-btn>
       </router-link>
       
-      <router-link to="/about" class="rlink">
+      <router-link to="/trtystat" class="rlink">
         <v-btn class="vbtn" color="lime lighten-4">
           운송유형통계
         </v-btn>
       </router-link>
+      
+      <router-link to="/nodelink" class="rlink">
+        <v-btn class="vbtn" color="lime lighten-4">
+          노드링크조회
+        </v-btn>
+      </router-link>
 
-      <router-link to="/color" class="rlink">
+      <router-link to="/colorpicker" class="rlink">
         <v-btn class="vbtn" color="lime lighten-4">
           컬러픽커
         </v-btn>
