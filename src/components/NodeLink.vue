@@ -263,9 +263,6 @@ export default {
         console.log(error);
       });
     },
-    isEmptyObject(param) {
-      return Object.keys(param).length === 0 && param.constructor === Object;
-    },
     // 검색
     search() {
 			// 검색 조건
@@ -300,12 +297,10 @@ export default {
         }
       }
 
-      // // 기존 nodeLinkLayer 제거
-			// if(this.nodeLinkLayer){
-			// 	this.$refs.map.removeLayer(this.nodeLinkLayer);
-			// }
-      console.log("레이어제거 작동");
-
+      // 기존 nodeLinkLayer 제거
+			if(this.nodeLinkLayer){
+				this.map.removeLayer(this.nodeLinkLayer);
+			}
        // 기존 list 제거
 			this.listText = '';
 
@@ -343,15 +338,14 @@ export default {
           this.nodeLinkLayer = L.geoJSON(data, {
             style: function() {
               return {
-                weight: 4,
-								opacity: 1,
+                weight: 7,
+								opacity: 2,
 								color: "red",
 								dashArray:"3",
 								fillOpacity:0.7
 							};
 						},
 						onEachFeature: function(feature, layer){
-              console.log(feature)
               layer.bindTooltip("<div class=\"tooltipbox2 type01\"><h2>" + feature.properties.roadNm + "</h2><p>권역코드(" 
 							+ feature.properties.dstrctCd + ")</p><p>링크ID("+ feature.properties.linkId +")</p><p>차로수("
 							+ feature.properties.cartrkCo +")</p><p>도로번호("+ feature.properties.roadNo +")</p><p>도로등급("
@@ -360,9 +354,6 @@ export default {
 							+ feature.properties.pasageLmttLd +")</p><p>통과제한높이("+ feature.properties.pasageLmttHg +")</p></div>", { closeOnClick: false, autoClose: false, autoPan: false });
 						}
 					}).addTo(this.map);
-              console.log("노드 테스트 4")
-					console.log(this.nodeLinkLayer);
-					console.log(response.features[0].geometry.coordinates[0][1]+","+ response.features[0].geometry.coordinates[0][0]);
 
           const roadCnt = data.features.length;
 					this.roadCnt = roadCnt // 총운행건수

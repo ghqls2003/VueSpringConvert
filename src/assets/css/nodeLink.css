@@ -1,9 +1,9 @@
-#app {
-  width: 99vw;
-  height: 92vh;
-}
+/* #app {
+} */
 #mapContainer {
   z-index: 0;
+  width: 99vw;
+  height: 92vh;
 }
 .wTable.t01 .k-dropdown.select {
   background: transparent;
@@ -102,4 +102,12 @@
 }
 .tsmap-pane {
   z-index: 99;
+}
+.type01 {
+  margin: 0px;
+  font-size: 15px;
+}
+.type01 p{
+  margin: 0px;
+  font-size: 15px;
 }
