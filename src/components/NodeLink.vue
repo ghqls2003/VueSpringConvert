@@ -2,16 +2,7 @@
   <div>
 		<!-- 지도 -->
     <div id="app">
-      <l-map id="mapContainer" ref="map"
-        :zoom='7'
-        :minZoom='8'
-        :maxZoom='18'
-        :center="[36.176267, 126.976912]"
-      >
-        <l-tile-layer
-        url='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
-        />
-      </l-map>
+      <div id="mapContainer" ref="map"></div>
     </div>
     <!-- container start -->
     <div>
@@ -69,8 +60,8 @@
                         item-value="value"
                         chips
                         label="도로유형"
-                        multiple
                         outlined
+                        clearable
                         hide-details
                       ></v-select>
                     </v-col>
@@ -82,8 +73,8 @@
                         item-value="value"
                         chips
                         label="도로등급"
-                        multiple
                         outlined
+                        clearable
                         hide-details
                       ></v-select>
                     </v-col>
@@ -94,7 +85,7 @@
                       <input type="text" class="inp k-input forinput" id="deptCd" ref="deptCd" placeholder="관리기관코드" />
                       <input type="text" class="inp k-input forinput" id="linkId" ref="linkId" placeholder="링크ID" />
                       <v-col>
-                        <v-autocomplete id="roadNm" ref="roadNm" name="roadNm" @click.once="roadNm()"
+                        <v-autocomplete id="roadNm" ref="roadNm" name="roadNm"
                           v-model="roadNmvalue"
                           :items="roadNmitems"
                           dense
@@ -113,14 +104,14 @@
               <div style="position: relative; top:10px; text-align:center;">
                 <br>
                 <span class="spanCnt" style="margin-right:15px;">조회건수</span>
-                <span id="roadCnt" class="spanCnt" style="margin-right:5px;">0</span>
-                <span class="spanCnt" v-bind="this.roadCnt">건</span>
+                <input type="text" disabled id="roadCnt" class="spanCnt" style="width:55px" v-model="this.roadCnt"/>
+                <span class="spanCnt">건</span>
               </div>  
             </div>	
           </div>
           <div class="mpopCont">
             <div class="mContForm">
-              <div class="scrolls" id="carLists" ref="carLists"></div>
+              <div class="scrolls" id="carLists" ref="carLists" v-html="listText"></div>
             </div>
           </div>
         </div>
@@ -131,8 +122,8 @@
 
 <script>
 import axios from 'axios'
-import { LMap, LTileLayer } from 'vue2-leaflet'
-// import L from 'leaflet'
+// import { LMap, LTileLayer } from 'vue2-leaflet'
+import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import 'leaflet/dist/leaflet-src.js'
 import '@/assets/css/common.css'
@@ -142,10 +133,16 @@ import '@/assets/css/nodeLink.css'
 export default {
   name: 'LeafletView',
   components: {
-    LMap,
-    LTileLayer,
+    // LMap,
+    // LTileLayer,
   },
   data: () =>({
+    map: null,
+    tiles: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      minZoom: 8,
+      maxZoom: 18
+    }),
+    latlng: L.latLng(36.176267, 126.976912),
     timeStamp: '',
     hidden: false,
     slider: {
@@ -174,11 +171,19 @@ export default {
     roadNmvalue: [],
     nodeLinkLayer: [],
     roadCnt: '',
+    roadTy: '',
+    roadGrad: '',
+    dstrctCd: '',
+    deptCd: '',
+    roadNm: '',
+    linkId: '',
+    listText: '',
   }),
   created() {
     setInterval(this.nowTime, 1000);
   },
   mounted() {
+    this.map = L.map('mapContainer', { center: this.latlng, zoom: 7, layers: [this.tiles]})
     this.getRoadData();
   },
   updated() {
@@ -252,51 +257,93 @@ export default {
           roadNmList.push(data.data[i].roadNm)
         }
         this.roadNmitems = roadNmList
-        this.roadNmvalue = roadNmList
+        this.roadNmvalue = ''
       })
       .catch(error => {
         console.log(error);
       });
     },
+    isEmptyObject(param) {
+      return Object.keys(param).length === 0 && param.constructor === Object;
+    },
     // 검색
     search() {
-			console.log("검색 작동");
 			// 검색 조건
-			if(this.$refs.roadTy.value == "" && this.$refs.roadGrad.value == "" && this.$refs.dstrctCd.value == "" && this.$refs.deptCd.value == "" && this.$refs.roadNm.value == "" && this.$refs.linkId.value == ""){
-        alert("최소한 한가지 항목은 선택하거나 입력하셔야 합니다.");
-        return;
-			}
+      // 종합 검색
+      if(this.searchCk == 1){
+        const ty = this.$refs.roadTy.value;
+        const grad = this.$refs.roadGrad.value;
+        if(ty == "" && grad == "" || ty != "" && grad == "" || ty == "" && grad != "" || ty == null && grad == null || ty != null && grad == null || ty == null && grad != null) {
+          alert("도로유형과 도로등급을 같이 선택해 주시기 바랍니다.");
+          return;
+        }
+        // 도로유형 '000', '003'에 대한 검색 제약
+        if(ty == "000" || ty == "003"){
+          alert("도로유형 '일반도로'와 '교량'은 데이터가 너무 많아 도로 상세 검색을 이용 바랍니다.");
+            return;
+        }
+      }
+      // 상세 검색
+      if(this.searchCk == 0){
+        const dstrct = this.$refs.dstrctCd.value;
+        const dept = this.$refs.deptCd.value;
+        const road = this.$refs.roadNm.value;
+        const link = this.$refs.linkId.value;
+        if(dstrct == "" && dept == "" && road == "" && link == "" || dstrct == "" && dept == "" && road == null && link == "") {
+          alert("최소한 한가지 항목은 선택하거나 입력하셔야 합니다.");
+          return;
+        }
+        // 권역코드 제약
+        if(dstrct != "" && dept == "" && road == "" && link == ""){
+          alert("권역코드는 다른 항목과 같이 검색해주시기 바랍니다.");
+          return;
+        }
+      }
+
       // // 기존 nodeLinkLayer 제거
 			// if(this.nodeLinkLayer){
 			// 	this.$refs.map.removeLayer(this.nodeLinkLayer);
 			// }
-
       console.log("레이어제거 작동");
-      //  // 기존 list 제거
-      // console.log(this.$refs.carLists.children);
-			// this.$refs.carLists.children.remove();
 
-      console.log("리스트제거 작동");
+       // 기존 list 제거
+			this.listText = '';
 
-      axios.get('/admin/bm/opratRcordSearch', {
+      if(this.searchCk == 1){
+        this.roadTy = this.$refs.roadTy.value;
+        this.roadGrad = this.$refs.roadGrad.value;
+        this.dstrctCd = '';
+        this.deptCd = '';
+        this.roadNm = '';
+        this.linkId = '';
+      } else if(this.searchCk == 0){
+        this.roadTy = '';
+        this.roadGrad = '';
+        this.dstrctCd = this.$refs.dstrctCd.value;
+        this.deptCd = this.$refs.deptCd.value;
+        this.roadNm = this.$refs.roadNm.value;
+        this.linkId = this.$refs.linkId.value;
+      }
+
+      axios.get('/admin/bm/vueRcordSearch', {
         data: {},
         params: {
-          // 검색값
-          roadTy : this.$refs.roadTy,
-          roadGrad : this.$refs.roadGrad,
-          dstrctCd : this.$refs.dstrctCd,
-          deptCd : this.$refs.deptCd,
-          roadNm : this.$refs.roadNm,
-          linkId : this.$refs.linkId
+          roadTy : this.roadTy,
+          roadGrad : this.roadGrad,
+          dstrctCd : this.dstrctCd,
+          deptCd : this.deptCd,
+          roadNm : this.roadNm,
+          linkId : this.linkId
         }
       })
       .then(response => {
-				// 데이터가 온전히 담기는 경우에만 실행
-				if (response != null && !response.features.isEmpty()) {
-					this.nodeLinkLayer = LMap.geoJSON(response, {
-						style: function() {
-							return {
-								weight: 4,
+        if(response != null){
+          const data = response.data;
+
+          this.nodeLinkLayer = L.geoJSON(data, {
+            style: function() {
+              return {
+                weight: 4,
 								opacity: 1,
 								color: "red",
 								dashArray:"3",
@@ -304,34 +351,36 @@ export default {
 							};
 						},
 						onEachFeature: function(feature, layer){
-							layer.bindTooltip("<div class=\"tooltipbox2 type01\"><h2>" + feature.properties.roadNm + "</h2><p>권역코드(" 
+              console.log(feature)
+              layer.bindTooltip("<div class=\"tooltipbox2 type01\"><h2>" + feature.properties.roadNm + "</h2><p>권역코드(" 
 							+ feature.properties.dstrctCd + ")</p><p>링크ID("+ feature.properties.linkId +")</p><p>차로수("
 							+ feature.properties.cartrkCo +")</p><p>도로번호("+ feature.properties.roadNo +")</p><p>도로등급("
 							+ feature.properties.roadGrad +")</p><p>도로유형("+ feature.properties.roadTy +")</p><p>최고제한속도("
 							+ feature.properties.topLmttSpd +")</p><p>통과제한차량("+ feature.properties.pasageLmttVhcle +")</p><p>통과제한하중("
 							+ feature.properties.pasageLmttLd +")</p><p>통과제한높이("+ feature.properties.pasageLmttHg +")</p></div>", { closeOnClick: false, autoClose: false, autoPan: false });
 						}
-					}).addTo(this.$refs.map);
+					}).addTo(this.map);
+              console.log("노드 테스트 4")
 					console.log(this.nodeLinkLayer);
 					console.log(response.features[0].geometry.coordinates[0][1]+","+ response.features[0].geometry.coordinates[0][0]);
 
-					var roadCnt = response.features.length;
+          const roadCnt = data.features.length;
 					this.roadCnt = roadCnt // 총운행건수
-					if (roadCnt == 0) {
-						// eslint-disable-next-line
-						alret("검색결과가 없습니다.");
+					if (this.roadCnt == 0) {
+            this.listText = "<div>검색 결과가 없습니다.</div>";
 					} else {
-						this.forEach(response.features, function(index, item) {
-								this.$refs.carLists.append(
-									"<div class='result list' value1="+item.geometry.coordinates[0][1]+" value2="
-									+item.geometry.coordinates[0][0]+"><p>"+item.properties.rr+":"+item.properties.roadNm+"</p><p>"
-									+item.properties.deptNm+"</p><p>링크ID : "+item.properties.linkId+"</p></div>"
-								);
-						})
+            var listItem = [];
+						for(var i=0; i<data.features.length; i++){
+               const rs = "<div class='result list' value1="+data.features[i].geometry.coordinates[0][1]+" value2="
+                +data.features[i].geometry.coordinates[0][0]+"><p>"+data.features[i].properties.rr+":"+data.features[i].properties.roadNm+"</p><p>"
+                +data.features[i].properties.deptNm+"</p><p>링크ID : "+data.features[i].properties.linkId+"</p></div>";
+              listItem.push(rs);
+            }
+            this.listText = listItem;
 					}
-				}else{
-					alert("검색결과가 없습니다.");
-				}
+        }else{
+          alert("검색결과가 없습니다.");
+        }
       })
       .catch(error => {
         console.log(error);
@@ -341,24 +390,8 @@ export default {
 }
 
 
-
-
-
-
-
-
-
-
-
-
-	// var map = '';
-	// var lg2 = null;
   //   var geometry1 = ''; // 선택된 좌표x
   //   var geometry2 = ''; // 선택된 좌표y
-    
-  //   //이벤트 정의
-  //   $opratRcord.event = {
-  //       setUIEvent : function() {
 
   //           // 리스트 클릭시 지도 이동
 	// 		$(document).on("click", ".list", function(){
@@ -368,11 +401,5 @@ export default {
 	// 				var moveMap = new tsmap.latLng(geometry1, geometry2);
 	// 				console.log(geometry1, geometry2);
 	// 				map.setView(moveMap, 16);
-				
 	// 	    });
-
-  //       }, // setUIEvent
-		
-	
-  //   };
 </script>

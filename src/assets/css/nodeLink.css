@@ -36,7 +36,6 @@
 .mpop03 {
   z-index: 2;
   width: 300px;
-  height: 97%;
   overflow: hidden;
   background: #fff;
   border: 1px solid #c9cfd0;
@@ -90,6 +89,9 @@
   padding: 10px 0;
   text-align: center;
   margin-bottom: 5px;
+}
+#carLists .result p {
+  margin: 0px;
 }
 .result.active {
   background: #4298b3;
