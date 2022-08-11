@@ -53,9 +53,9 @@
                   </v-row>
                   <v-row v-if="searchCk == 0" align="center">
                     <div @keydown.enter="search()" class="inpSearch ent1" style="overflow: hidden; margin-bottom: 5px;">
-                      <input type="text" class="inp k-input forinput" id="dstrctCd" ref="dstrctCd" placeholder="권역코드" />
-                      <input type="text" class="inp k-input forinput" id="deptCd" ref="deptCd" placeholder="관리기관코드" />
-                      <input type="text" class="inp k-input forinput" id="linkId" ref="linkId" placeholder="링크ID" />
+                      <input type="text" class="inp k-input forinput" id="dstrctCd" ref="dstrctCd" placeholder="권역코드" clearable />
+                      <input type="text" class="inp k-input forinput" id="deptCd" ref="deptCd" placeholder="관리기관코드" clearable />
+                      <input type="text" class="inp k-input forinput" id="linkId" ref="linkId" placeholder="링크ID" clearable />
                       <v-col>
                         <v-autocomplete id="roadNm" ref="roadNm" name="roadNm" v-model="roadNmvalue" :items="roadNmitems" dense filled label="도로명 자동완성" clearable hide-details background-color="white"></v-autocomplete>
                       </v-col>
@@ -107,8 +107,8 @@ export default {
   },
   data: () =>({
     map: null,
-    tiles: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{ minZoom: 8, maxZoom: 18,}),
-    bsUrl: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    tiles: L.tileLayer('http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',{ minZoom: 8, maxZoom: 18, subdomains:['mt0','mt1','mt2','mt3']}),
+    bsUrl: 'http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
     sateUrl: 'http://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}',
     latlng: L.latLng(36.176267, 126.976912),
     timeStamp: '',  // 실시간
@@ -164,6 +164,12 @@ export default {
     // 투명 슬라이더
     this.$refs.opac.style.opacity= this.slider.val/100;
   },
+  beforeDestroy() {
+    if (this.map) {
+      this.map.remove()
+      this.listText = '';
+    }
+  },
   methods: {
     totalSearch() {
       this.searchCk = 1;
@@ -195,7 +201,8 @@ export default {
 				event.target.classList.remove('on');
         if(this.tiles._url == this.sateUrl){
           this.map.removeLayer(this.tiles);
-          this.tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{ minZoom: 8, maxZoom: 18,})
+          // this.tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{ minZoom: 8, maxZoom: 18})   leaflet 원본
+          this.tiles = L.tileLayer('http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',{ minZoom: 8, maxZoom: 18, subdomains:['mt0','mt1','mt2','mt3']})
           this.map.addLayer(this.tiles);
         }
 			} else {
@@ -354,7 +361,7 @@ export default {
     listClick(i) {
       this.geometry1 = this.listVal[i][0];
 			this.geometry2 = this.listVal[i][1];
-      this.map.setView([this.geometry1, this.geometry2], 17)
+      this.map.flyTo([this.geometry1, this.geometry2], 16)
     },
   }
 }
