@@ -35,15 +35,7 @@
             <div class="mform">
               <v-flex xs12>
                 <p style="text-align:center; margin-bottom:0px; font-weight:bold;">투명도 조절</p>
-                <v-slider
-                  v-model="slider.val"
-                  :color="slider.color"
-                  :min="40"
-                  :max="100"
-                  thumb-label
-                  value="opacity"
-                  hide-details
-                ></v-slider>
+                <v-slider v-model="slider.val" :color="slider.color" :min="40" :max="100" thumb-label value="opacity" hide-details></v-slider>
               </v-flex>
               <v-btn-toggle color="primary" mandatory>
                 <v-btn style="width:130px; font-size:15px; font-weight:bold;" id="totalSearch" ref="totalSearch" @click="totalSearch()">도로 종합 검색</v-btn>
@@ -53,30 +45,10 @@
                 <v-container fluid>
                   <v-row v-if="searchCk == 1" align="center">
                     <v-col cols="12" sm="12">
-                      <v-select id="roadTy" ref="roadTy"
-                        v-model="roadTyResult"
-                        :items="roadTyList"
-                        item-text="name"
-                        item-value="value"
-                        chips
-                        label="도로유형"
-                        outlined
-                        clearable
-                        hide-details
-                      ></v-select>
+                      <v-select id="roadTy" ref="roadTy" v-model="roadTyResult" :items="roadTyList" item-text="name" item-value="value" chips label="도로유형" outlined clearable hide-details></v-select>
                     </v-col>
                     <v-col cols="12" sm="12">
-                      <v-select id="roadGrad" ref="roadGrad"
-                        v-model="roadGradResult"
-                        :items="roadGradList"
-                        item-text="name"
-                        item-value="value"
-                        chips
-                        label="도로등급"
-                        outlined
-                        clearable
-                        hide-details
-                      ></v-select>
+                      <v-select id="roadGrad" ref="roadGrad" v-model="roadGradResult" :items="roadGradList" item-text="name" item-value="value" chips label="도로등급" outlined clearable hide-details></v-select>
                     </v-col>
                   </v-row>
                   <v-row v-if="searchCk == 0" align="center">
@@ -85,16 +57,7 @@
                       <input type="text" class="inp k-input forinput" id="deptCd" ref="deptCd" placeholder="관리기관코드" />
                       <input type="text" class="inp k-input forinput" id="linkId" ref="linkId" placeholder="링크ID" />
                       <v-col>
-                        <v-autocomplete id="roadNm" ref="roadNm" name="roadNm"
-                          v-model="roadNmvalue"
-                          :items="roadNmitems"
-                          dense
-                          filled
-                          label="도로명 자동완성"
-                          clearable
-                          hide-details
-                          background-color="white"
-                        ></v-autocomplete>
+                        <v-autocomplete id="roadNm" ref="roadNm" name="roadNm" v-model="roadNmvalue" :items="roadNmitems" dense filled label="도로명 자동완성" clearable hide-details background-color="white"></v-autocomplete>
                       </v-col>
                     </div>
                   </v-row>
@@ -111,7 +74,13 @@
           </div>
           <div class="mpopCont">
             <div class="mContForm">
-              <div class="scrolls" id="carLists" ref="carLists" v-html="listText"></div>
+              <div class="scrolls" id="carLists" ref="carLists">
+                <div class='result list' @click="listClick(i)" v-for="(list, i) in listRr" :key="i">
+                  <p>{{ listRr[i] }} : {{ listNm[i] }}</p>
+                  <p>{{ listDept[i] }}</p>
+                  <p>{{ listLink[i] }}</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -138,19 +107,18 @@ export default {
   },
   data: () =>({
     map: null,
-    tiles: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      minZoom: 8,
-      maxZoom: 18
-    }),
+    tiles: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{ minZoom: 8, maxZoom: 18,}),
+    bsUrl: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    sateUrl: 'http://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}',
     latlng: L.latLng(36.176267, 126.976912),
-    timeStamp: '',
-    hidden: false,
-    slider: {
+    timeStamp: '',  // 실시간
+    hidden: false,  // 검색창 상태
+    slider: {  // 투명도 조절
       val: 100, color: 'lime darken-4'
     },
-    searchCk: 1,
+    searchCk: 1,  // 검색창 변환 조건
     roadTyResult: '',
-    roadTyList: [
+    roadTyList: [  // kendo 대체
       { name: '일반도로', value: '000' },
       { name: '고가차도', value: '001' },
       { name: '지하차도', value: '002' },
@@ -158,7 +126,7 @@ export default {
       { name: '터널', value: '004' }
     ],
     roadGradResult: '',
-    roadGradList: [
+    roadGradList: [  // kendo 대체
       { name: '고속국도', value: '101' },
       { name: '도시고속국도', value: '102' },
       { name: '일반국도', value: '103' },
@@ -167,17 +135,23 @@ export default {
       { name: '지방도', value: '106' },
       { name: '시/군도' ,value: '107' },
     ],
-    roadNmitems: [],
-    roadNmvalue: [],
-    nodeLinkLayer: [],
-    roadCnt: '',
-    roadTy: '',
-    roadGrad: '',
-    dstrctCd: '',
-    deptCd: '',
-    roadNm: '',
-    linkId: '',
-    listText: '',
+    roadNmitems: [],  // 도로명 자동완성 데이터
+    roadNmvalue: [],  // 도로명 자동완성 데이터
+    nodeLinkLayer: [],  // 노드링크레이어
+    roadCnt: '',  // 조회 건수
+    roadTy: '',  // 검색 데이터 주입용
+    roadGrad: '',  // 검색 데이터 주입용
+    dstrctCd: '',  // 검색 데이터 주입용
+    deptCd: '',  // 검색 데이터 주입용
+    roadNm: '',  // 검색 데이터 주입용
+    linkId: '',  // 검색 데이터 주입용
+    listVal: '',  // 리스트 value1,2
+    listRr: '',  // 리스트 rr
+    listNm: '',  // 리스트 Nm
+    listDept: '',  // 리스트 dept
+    listLink: '',  // 리스트 link
+    geometry1: '',  // 리스트 클릭 좌표x
+    geometry2: '',  // 리스트 클릭 좌표y
   }),
   created() {
     setInterval(this.nowTime, 1000);
@@ -219,34 +193,20 @@ export default {
 			var ck = event.target.classList.contains('on');
 			if (ck) {
 				event.target.classList.remove('on');
-				// this.switchHMTSTileLayer('기본지도');
+        if(this.tiles._url == this.sateUrl){
+          this.map.removeLayer(this.tiles);
+          this.tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{ minZoom: 8, maxZoom: 18,})
+          this.map.addLayer(this.tiles);
+        }
 			} else {
-				event.target.classList.add('on');
-				// this.switchHMTSTileLayer('위성지도');
+        event.target.classList.add('on');
+        if(this.tiles._url == this.bsUrl){
+          this.map.removeLayer(this.tiles);
+          this.tiles = L.tileLayer('http://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', { minZoom: 8, maxZoom: 18, subdomains:['mt0','mt1','mt2','mt3']})
+          this.map.addLayer(this.tiles);
+        }
 			}
 		},
-    // // 위성지도 전환
-    // switchHMTSTileLayer(layerKey) {
-    //   console.log('들어옴')
-    //   if (layerKey == '기본지도') {
-    //     console.log('기본작동1')
-    //     if (!LTileLayer.contains(this.bsUrl)) {
-    //       LTileLayer.addLayer(this.bsUrl);
-    //     }
-    //     if (LTileLayer.contains(this.satelUrl)) {
-    //       LTileLayer.removeLayer(this.satelUrl);
-    //     }
-    //       console.log('중간')
-    //   } else if (layerKey == '위성지도') {
-    //     console.log('위성작동1')
-    //     if (LTileLayer.contains(this.bsUrl)) {
-    //           LTileLayer.removeLayer(this.bsUrl);
-    //       }
-    //     if (!LTileLayer.contains(this.satelUrl)) {
-    //       LTileLayer.addLayer(this.satelUrl);
-    //     }
-    //   }
-    // },
     // 도로명 리스트
     getRoadData() {
       axios.get('/admin/bm/roadList')
@@ -296,14 +256,13 @@ export default {
           return;
         }
       }
-
       // 기존 nodeLinkLayer 제거
 			if(this.nodeLinkLayer){
 				this.map.removeLayer(this.nodeLinkLayer);
 			}
        // 기존 list 제거
 			this.listText = '';
-
+      // v-if로 인해 공백이나 empty상태가 아니라 null값으로 인식되어 데이터 변환.
       if(this.searchCk == 1){
         this.roadTy = this.$refs.roadTy.value;
         this.roadGrad = this.$refs.roadGrad.value;
@@ -319,7 +278,7 @@ export default {
         this.roadNm = this.$refs.roadNm.value;
         this.linkId = this.$refs.linkId.value;
       }
-
+      // 검색 메인
       axios.get('/admin/bm/vueRcordSearch', {
         data: {},
         params: {
@@ -354,20 +313,34 @@ export default {
 							+ feature.properties.pasageLmttLd +")</p><p>통과제한높이("+ feature.properties.pasageLmttHg +")</p></div>", { closeOnClick: false, autoClose: false, autoPan: false });
 						}
 					}).addTo(this.map);
-
+          // 검색 리스트 표출
           const roadCnt = data.features.length;
 					this.roadCnt = roadCnt // 총운행건수
 					if (this.roadCnt == 0) {
             this.listText = "<div>검색 결과가 없습니다.</div>";
 					} else {
-            var listItem = [];
+            var valueItem = [];
+            var rrItem = [];
+            var nmItem = [];
+            var deptItem = [];
+            var linkItem = [];
 						for(var i=0; i<data.features.length; i++){
-               const rs = "<div class='result list' value1="+data.features[i].geometry.coordinates[0][1]+" value2="
-                +data.features[i].geometry.coordinates[0][0]+"><p>"+data.features[i].properties.rr+":"+data.features[i].properties.roadNm+"</p><p>"
-                +data.features[i].properties.deptNm+"</p><p>링크ID : "+data.features[i].properties.linkId+"</p></div>";
-              listItem.push(rs);
+              const val = [data.features[i].geometry.coordinates[0][1], data.features[i].geometry.coordinates[0][0]];
+              const rr = data.features[i].properties.rr;
+              const nm = data.features[i].properties.roadNm;
+              const dept = data.features[i].properties.deptNm;
+              const link = data.features[i].properties.linkId;
+              valueItem.push(val);
+              rrItem.push(rr);
+              nmItem.push(nm);
+              deptItem.push(dept);
+              linkItem.push(link);
             }
-            this.listText = listItem;
+            this.listVal = valueItem;
+            this.listRr = rrItem;
+            this.listNm = nmItem;
+            this.listDept = deptItem;
+            this.listLink = linkItem;
 					}
         }else{
           alert("검색결과가 없습니다.");
@@ -376,21 +349,13 @@ export default {
       .catch(error => {
         console.log(error);
       });
-		}
+		},
+    // 리스트 클릭시 지도 이동
+    listClick(i) {
+      this.geometry1 = this.listVal[i][0];
+			this.geometry2 = this.listVal[i][1];
+      this.map.setView([this.geometry1, this.geometry2], 17)
+    },
   }
 }
-
-
-  //   var geometry1 = ''; // 선택된 좌표x
-  //   var geometry2 = ''; // 선택된 좌표y
-
-  //           // 리스트 클릭시 지도 이동
-	// 		$(document).on("click", ".list", function(){
-                
-	// 			geometry1 = $(this).attr("value1");
-	// 			geometry2 = $(this).attr("value2");
-	// 				var moveMap = new tsmap.latLng(geometry1, geometry2);
-	// 				console.log(geometry1, geometry2);
-	// 				map.setView(moveMap, 16);
-	// 	    });
 </script>
