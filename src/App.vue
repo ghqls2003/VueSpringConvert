@@ -36,6 +36,12 @@
           노드링크조회
         </v-btn>
       </router-link>
+      
+      <router-link to="/rltmcntrl" class="rlink">
+        <v-btn class="vbtn" color="lime lighten-4">
+          실시간관제
+        </v-btn>
+      </router-link>
 
       <router-link to="/colorpicker" class="rlink">
         <v-btn class="vbtn" color="lime lighten-4">

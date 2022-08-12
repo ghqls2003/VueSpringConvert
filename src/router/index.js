@@ -21,12 +21,17 @@ const routes = [
   {
     path: '/nodelink',
     name: 'nodelink',
-    component: () => import(/* webpackChunkName: "nodelink" */ '../components/NodeLink.vue')
+    component: () => import(/* webpackChunkName: "nodelink" */ '../views/NodeLinkView.vue')
+  },
+  {
+    path: '/rltmcntrl',
+    name: 'rltmcntrl',
+    component: () => import(/* webpackChunkName: "nodelink" */ '../views/RltmCntrlView.vue')
   },
   {
     path: '/colorpicker',
     name: 'colorpicker',
-    component: () => import(/* webpackChunkName: "color" */ '../components/picker/ColorPicker.vue')
+    component: () => import(/* webpackChunkName: "color" */ '../views/ColorPickerView.vue')
   }
 ]
 

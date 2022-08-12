@@ -29,7 +29,7 @@
         <v-btn small elevation="10" class="show" color="primary" @click="hidden = !hidden">
           {{ hidden ? '창 펼치기' : '창 숨기기' }}
         </v-btn>
-        <!-- 실시간 이동차량 -->
+        <!-- 검색창 -->
         <div class="mpop03" ref="opac" v-show="!hidden">
           <div class="mpopHeader">
             <div class="mform">
@@ -57,7 +57,7 @@
                       <input type="text" class="inp k-input forinput" id="deptCd" ref="deptCd" placeholder="관리기관코드" clearable />
                       <input type="text" class="inp k-input forinput" id="linkId" ref="linkId" placeholder="링크ID" clearable />
                       <v-col>
-                        <v-autocomplete id="roadNm" ref="roadNm" name="roadNm" v-model="roadNmvalue" :items="roadNmitems" dense filled label="도로명 자동완성" clearable hide-details background-color="white"></v-autocomplete>
+                        <v-autocomplete id="roadNm" ref="roadNm" name="roadNm" v-model="roadNmvalue" :items="roadNmitems" dense filled label="도로명 자동완성" auto-select-first clearable hide-details background-color="white"></v-autocomplete>
                       </v-col>
                     </div>
                   </v-row>
@@ -100,7 +100,7 @@ import '@/assets/css/default.css'
 import '@/assets/css/nodeLink.css'
 
 export default {
-  name: 'LeafletView',
+  name: 'NodeLink',
   components: {
     // LMap,
     // LTileLayer,
@@ -110,7 +110,7 @@ export default {
     tiles: L.tileLayer('http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',{ minZoom: 8, maxZoom: 18, subdomains:['mt0','mt1','mt2','mt3']}),
     bsUrl: 'http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
     sateUrl: 'http://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}',
-    latlng: L.latLng(36.176267, 126.976912),
+    latlng: L.latLng(36.176267, 127.276912),
     timeStamp: '',  // 실시간
     hidden: false,  // 검색창 상태
     slider: {  // 투명도 조절
@@ -158,6 +158,7 @@ export default {
   },
   mounted() {
     this.map = L.map('mapContainer', { center: this.latlng, zoom: 7, layers: [this.tiles]})
+    L.control.scale().addTo(this.map);
     this.getRoadData();
   },
   updated() {
