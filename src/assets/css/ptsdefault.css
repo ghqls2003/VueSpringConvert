@@ -356,7 +356,6 @@ div.k-treeview.treeCont{padding:20px;width:calc( 100% - 2px );border:1px solid #
 .mpbHeader ul li:nth-child(5){background:url(../ptsimages/bg/bg_mpbList04.png);}
 .mpbHeader ul li:nth-child(6){background:url(../ptsimages/bg/bg_mpbList05.png);}
 
-
 .mpbCont{width:100%;height:235px;overflow:hidden;} 
 .btnMpbLeft{font-size:0;text-indent:-2000px;float:left;width:15px;border-top:1px solid #c9cfd0;border-right:1px solid #c9cfd0;height:234px;overflow:hidden;background:#f2f2f2 url(../ptsimages/bg/bg_left01.png) no-repeat center center;}
 .btnMpbLeft:hover{background:#0d2d4f url(../ptsimages/bg/bg_left01_on.png) no-repeat center center;}
@@ -445,7 +444,7 @@ body .k-datetimepicker .k-select{top:3px;}
 .chkBox input, .chkBox label{vertical-align:middle;font-size:14px;color:#000;}
 
 .pbtnBox{width:100%;height:auto;overflow:hidden;text-align:center;/*margin:20px 0;*/}
-.pbtnBox a{border-radius:18px;display:inline-block;width:70px;padding:0 10px;line-height:35px;height:35px;overflow:hidden;text-align:center;font-size:12px;color:#000;}
+.pbtnBox a{border-radius:18px;display:inline-block;width:90px;padding:0 10px;line-height:35px;height:35px;overflow:hidden;text-align:center;font-size:12px;color:#000;}
 .pbtnBox a img, .pbtnBox a span{vertical-align:middle;color:#fff;font-size:12px;}
 .pbtnBox a.btype01{background:#52779d;}
 .pbtnBox a.btype02{background:#fe5621;}
@@ -687,7 +686,7 @@ center;font-size:14px;color:#000;line-height:75px;padding-left:50px;}
 
 /*190517*/
 .legend{width:300px; position:absolute; }
-.legend.set{top:10px; right:70px; z-index:99; display:none}
+.legend.set{top:10px; right:70px; z-index:4; display:none}
 .legend.set.on{display:block}
 .legend.map{top:-310px; right:70px; z-index:99;  display:none}/*0524*/
 .legend.map.on{display:block}

@@ -102,7 +102,7 @@
           <tr>
             <th>주무 부처</th>
             <td>
-              <select class="select" name="org" id="org"><option value="00">전체</option></select>
+              <v-select id="org" ref="org" v-model="orgResult" :items="orgList" item-text="name" item-value="value" outlined hide-details hide-input></v-select>
             </td>
           </tr>
           <tr>
@@ -186,20 +186,20 @@
               <a href="javascript:void(0)"></a>
               <p>위성지도</p>
             </li>
-            <li id="waterSource" @click="waterSource()">
+            <li id="waterSource" @click="getWaterSource($event)">
               <a href="javascript:void(0)"></a>
               <p>상수원<br/>보호구역</p>
             </li>
-            <li id="trafficRestriction" @click="trafficRestriction()">
+            <li id="trafficRestriction" @click="getTrafficRestriction($event)">
               <a href="javascript:void(0)"></a>
               <p>통행제한<br/>도로</p>
             </li>
 
-            <li id="longTunnel" @click="longTunnl()">
+            <li id="longTunnel" @click="longTunnel($event)">
               <a href="javascript:void(0)"></a>
               <p>장대터널</p>
             </li>
-            <li id="corInstt" @click="corInstt()">
+            <li id="corInstt" @click="corInstt($event)">
               <a href="javascript:void(0)"></a>
               <p>대응기관</p>
             </li>
@@ -456,6 +456,11 @@ import '@/assets/css/ptsdefault.css'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import 'leaflet/dist/leaflet-src.js'
+import axios from 'axios'
+import nvl from 'nvl'
+import 'leaflet.markercluster/dist/leaflet.markercluster-src.js'
+import 'leaflet.markercluster/dist/MarkerCluster.css'
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
 
 export default {
   name:'RltmCntrl',
@@ -492,12 +497,22 @@ export default {
     ],
     filterImg: require("@/assets/ptsimages/ico/ico_filter01.png"),
     filterImg2: require("@/assets/ptsimages/ico/ico_pageList01.png"),
+    waterSourceLayer: [],  // 상수원 보호구역
+    trRestrictLayer: [],  // 통행제한도로
+    trRestRoadData: '',  // 통행제한도로 데이터
+    trRestRdMinZoom: 10,  // 통행제한도로 표시 시작 레벨
+    vlTunnelLayer: [],  // 장대터널
+    vlTunnelData: '',  // 장대터널 데이터
+    insttMarkers: L.layerGroup(),  // 대응기관 POI
+    orgResult: {name: '전체', value: '00'},
+    orgList: '',
   }),
   setup() {},
   created() {},
   mounted() {
     this.map = L.map('mapContainer', { center: this.latlng, zoom: 8, layers: [this.tiles]});
     L.control.scale().addTo(this.map);
+    this.selectDgstOrgList();  // 주무부처 리스트 조회
   },
   unmounted() {},
   beforeDestroy() {
@@ -518,7 +533,7 @@ export default {
       var seLogin = "${sessionScope.userData.authorLv}";
       return seLogin;
     },
-    //필터 이벤트 팝업
+    // 필터 이벤트 팝업
     btnFilter() {
 		if (this.$refs.filterPopup.style.display=="none") {
 			this.$refs.filterPopup.style.display="block";
@@ -550,7 +565,7 @@ export default {
         event.target.classList.add("on");
       }
     },
-    //위성지도 버튼 클릭 시
+    // 위성지도 버튼 클릭 시
     satelliteMap(event) {
 			var ck = event.target.classList.contains('on');
 			if (ck) {
@@ -570,11 +585,233 @@ export default {
         }
 			}
 		},
-    //지도 줌 확대
+    // 상수원보호구역 버튼 클릭 시
+		getWaterSource(event) {
+			var ck = event.target.classList.contains('on');
+			if (ck) {
+				event.target.classList.remove('on');
+        // 기존 waterSourceLayer 제거
+				this.map.removeLayer(this.waterSourceLayer);
+			} else {
+				event.target.classList.add('on');
+				axios.get('/vc/selectLmttZone', {
+          data: {},
+        })
+        .then(response => {
+          if(response != null) {
+            var data = response.data;
+            this.waterSourceLayer = L.geoJSON(data, {
+							style: function() {
+								return {
+									weight: 2,
+									opacity: 1,
+									color: "#FF5A5A",
+									dashArray:"3",
+									fillOpacity:0.7
+								};
+							},
+							onEachFeature: function(feature, layer){
+								layer.bindTooltip("<div class=\"tooltipbox2 type01\"><h4>"+ feature.properties.spotNm +"</h4>("+ feature.properties.clCdNm +")</div>", { closeOnClick: false, autoClose: false, autoPan: false });
+							}
+						}).addTo(this.map);
+          }
+        })
+        .catch(error => {
+          console.log(error);
+        });
+      }
+		},
+    // 통행제한도로 버튼 클릭 시
+		getTrafficRestriction(event) {
+			var ck = event.target.classList.contains('on');
+			if (ck) {
+				event.target.classList.remove('on');
+				this.map.removeLayer(this.trRestrictLayer);
+				this.trRestRoadData = null;
+			} else {
+				if (this.map.getZoom() < this.trRestRdMinZoom) {
+					this.map.setZoom(this.trRestRdMinZoom);
+				}
+				event.target.classList.add('on');
+				axios('/vc/selectLmttRoad', {
+          data: {},
+        })
+        .then(response => {
+          if(response != null) {
+            var data = response.data;
+            this.trRestRoadData = data;
+            // 통행제한도로 표출
+            if (this.trRestrictLayer != undefined) {
+              this.map.removeLayer(this.trRestrictLayer);
+            }
+            // 폴리라인에 포함된 포인트 다 돌면서 화면 내에 포함된 점이 하나라도 있으면 그림. 
+            if (this.map.getZoom() >= this.trRestRdMinZoom) {
+              var east = this.map.getBounds().getEast();
+              var west = this.map.getBounds().getWest();
+              var north = this.map.getBounds().getNorth();
+              var south = this.map.getBounds().getSouth();
+              // 제한도로 레이어 초기화
+              this.trRestrictLayer = L.geoJSON([], { 
+                style: function() {
+                  return {
+                    weight: 5,
+                    opacity: 0.7,
+                    color: "#60C5F1",
+                    dashArray:"5",
+                    fillOpacity:0.5
+                  };
+                },
+                onEachFeature: function(feature, layer) {
+                  layer.bindTooltip("<div class=\"tooltipbox2 type01\"><h4>통행제한도로</h4><br />요일 : "+ feature.properties.day +"<br />대상 : 화물차<br />시간 : "+ feature.properties.time +"</div>", { closeOnClick: false, autoClose: false, autoPan: false	});
+                }
+              }).addTo(this.map);
+              // 현재범위 내의 제한도로 표시
+              this.trRestRoadData.features.forEach(function (item) {
+                item.geometry.coordinates.forEach(function (coord) {
+                  var x = coord[0]; 
+                  var y = coord[1];
+                
+                  if (x > west && x < east) {
+                    if (y > south && y < north) {
+                      this.trRestrictLayer.addData(item);
+                      return;
+                    }
+                  }
+                });
+              });
+            }
+          }
+        })
+        .catch(error => {
+          console.log(error);
+        });
+			}
+		},
+    // 장대터널 버튼 클릭 시
+    longTunnel(event) {
+      var ck = event.target.classList.contains('on');
+      if (ck) {
+        event.target.classList.remove('on')
+        this.map.removeLayer(this.vlTunnelLayer);
+        this.vlTunnelData = null;
+      } else {
+        event.target.classList.add('on');
+        axios('/vc/selectTunnel', {
+          data: {}
+        })
+        .then(response => {
+          if(response != null) {
+            var data = response.data;
+            this.vlTunnelData = data;
+            this.vlTunnelLayer = L.geoJSON(data, {
+              style: function() {
+                return {
+                  weight: 3,
+                  opacity: 1,
+                  color: '#A349A4',
+                  dashArray: '5',
+                  fillOpacity: 0.4
+                };
+              },
+              onEachFeature: function(feature, layer) {
+                layer.bindTooltip("<div class=\"tooltipbox2 type01\"><h4>"+ feature.properties.tunnelNm +" 터널</h4><br />노선 : "+ feature.properties.routeNm +"<br />총 연장 : "+ feature.properties.extn +"</div>", { closeOnClick: false, autoClose: false, autoPan: false });
+              }
+            }).addTo(this.map);
+          }
+        })
+        .catch(error => {
+          console.log(error);
+        });
+      }
+    },
+    // 대응기관 버튼 클릭 시
+		corInstt(event) {
+			var ck = event.target.classList.contains('on');
+			if (ck) {
+				event.target.classList.remove('on');
+				this.map.removeLayer(this.insttMarkers);
+			} else {
+				event.target.classList.add('on');
+				this.dispInsttPOI();
+			}
+		},
+    // 방재기관 POI 표출
+    dispInsttPOI() {
+      axios('/vc/vueSelectInsttInfo', {
+        data: {}
+      })
+      .then(response => {
+        this.map.removeLayer(this.insttMarkers);
+        if(response != null) {
+          var data = response.data;
+          console.log(data)
+          var ipIcon = L.icon({  // 경찰서 마커
+            iconUrl: require('@/assets/ptsimages/ico/ico_ip.png'),
+            iconSize: [34, 34]
+          });
+          var ifIcon = L.icon({  // 소방서 마커
+            iconUrl: require('@/assets/ptsimages/ico/ico_if.png'),
+            iconSize: [34, 34]
+          });
+          if (data.length > 0)  {
+            for (var i=0; i<data.length; i++) {
+              var insttMaker = null;
+              
+              if (data[i].sclas == "경찰서") {
+                insttMaker = L.marker(new L.latLng(data[i].yCrd, data[i].xCrd), {icon:ipIcon});
+                insttMaker.bindTooltip("<div class=\"tooltipbox2 type02\"><h4>"+ data[i].spotNm +"</h4>연락처 : "+ nvl(data[i].telno) +"</div>", { closeOnClick: false, autoClose: false, autoPan: false });
+              } else if (data[i].sclas == "소방서") {
+                insttMaker = L.marker(new L.latLng(data[i].yCrd, data[i].xCrd), {icon:ifIcon});
+                insttMaker.bindTooltip("<div class=\"tooltipbox2 type01\"><h4>"+ data[i].spotNm +"</h4>연락처 : "+ nvl(data[i].telno) +"</div>", { closeOnClick: false, autoClose: false, autoPan: false });
+              }
+              
+              if (insttMaker != null) {
+                insttMaker.addTo(this.insttMarkers);
+              }
+            }
+            this.insttMarkers.addTo(this.map);
+          }
+        } else {
+          alert("조회 결과가 없습니다.");
+        }
+      })
+      .catch(error => {
+        console.log(error);
+      });   
+    },
+    // 주무부처 리스트 조회
+    selectDgstOrgList() {
+      axios.get('/cmmn/vueCommonCode', {
+        data: {},
+        params: {
+          cdCl: "DGST_DIV_CD"
+        }
+      })
+      .then(response => {
+        if(response != null) {
+          var data = response.data;
+          console.log(data)
+          var arr = [];
+          var arrTotal = [];
+          arr[0] = {name: "전체", value: "00"};
+          arrTotal.push(arr[0]);
+          for (var i=0; i<data.length; i++) {
+            var item = data[i];
+            arr[i+1]={name: item.cdDc, value: item.cdId};
+            arrTotal.push(arr[i+1]);
+          }
+          this.orgList = arrTotal;
+        }
+      })
+      .catch(error => {
+        console.log(error);
+      })
+    },
+    // 지도 줌 확대
     zoomPlus() {
       this.map.zoomIn(1);
     },
-    //지도 줌 축소
+    // 지도 줌 축소
     zoomMinus() {
       this.map.zoomOut(1);
     },

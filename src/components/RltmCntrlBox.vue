@@ -1,105 +1,5 @@
 <script>
 
-new Vue({
-		el: '#mainApp',
-		methods: {
-			// 알람버튼 클릭 이벤트(클릭 시 이상운행 최상단으로 스크롤)
-			btnAlert() {
-				$("#carLists").mCustomScrollbar("scrollTo", $("#abnormalSub"));
-			},
-			// 팝업 창 취소버튼 이벤트
-			trmnlNoticeCancle() {
-				$("#trmnlNoticePop").data("kendoDialog").close();
-			},
-			//운전자통화 팝업 취소 이벤트
-			driverCallCancle() {
-				$("#driverCallPop").data("kendoDialog").close();
-			},
-			//관계기관전파 팝업 취소 이벤트
-			orgSpreadCancle() {
-				$("#orgSpreadPop").data("kendoDialog").close();
-			},
-			//상황종료 팝업 취소 버튼 클릭 이벤트
-			situationEndCancel() {
-				$("#situationEndPop").data("kendoDialog").close();
-			},
-			//사고전환 팝업 취소 이벤트
-			regitAccidentCancle() {
-				$("#regitAccidentPop").data("kendoDialog").close();
-			},
-			//사고신고 팝업 취소 이벤트
-			reportAccidentCancle() {
-				$("#reportAccidentPop").data("kendoDialog").close();
-			},
-			//상수원보호구역 버튼 클릭 시
-			waterSource() {
-				var ck = $('#waterSource').children().hasClass("on");
-				if (ck) {
-					$('#waterSource').children().removeClass("on");
-					waterSourceLayer.remove();
-				} else {
-					$('#waterSource').children().addClass("on");
-					ajax(true, contextPath+'/vc/selectLmttZone', 'body', '조회중입니다.', null, function (data) {
-						if (data != null) {
-							waterSourceLayer = tsmap.geoJSON(data, {
-								style: function() {
-									return {
-										weight: 2,
-										opacity: 1,
-										color: "#FF5A5A",
-										dashArray:"3",
-										fillOpacity:0.7
-									};
-								},
-								onEachFeature: function(feature, layer){
-									layer.bindTooltip("<div class=\"tooltipbox2 type01\"><h4>" + feature.properties.spotNm + "</h4>(" + feature.properties.clCdNm + ")</div>", { closeOnClick: false, autoClose: false, autoPan: false });
-								}
-							}).addTo(map);
-						}
-					});
-				}
-			},
-			//통행제한도로 버튼 클릭 시
-			trafficRestriction() {
-				var ck = $('#trafficRestriction').children().hasClass("on");
-				if (ck) {
-					$('#trafficRestriction').children().removeClass("on");
-					trRestrictLayer.remove();
-					trRestRoadData = null;
-				} else {
-					if (map.getZoom() < trRestRdMinZoom) {
-						map.setZoom(trRestRdMinZoom);
-					}
-					$('#trafficRestriction').children().addClass("on");
-					ajax(true, contextPath+'/vc/selectLmttRoad', 'body', '조회중입니다.', null, function (data) {
-						if (data != null) {
-							trRestRoadData = data;
-							dispRestRoad();
-						}
-					});
-				}
-			},
-			//대응기관 버튼 클릭 시
-			corInstt() {
-				var ck = $('#corInstt').children().hasClass("on");
-				if (ck) {
-					$('#corInstt').children().removeClass("on");
-					insttMarkers.clearLayers();
-				} else {
-					$('#corInstt').children().addClass("on");
-					dispInsttPOI();
-				}
-			},
-		}
-	})
-/**
- * 실시간 관제화면에 대한 클래스
- *
- * history : 네이버시스템(주), 1.0, 2018/09/05  초기 작성
- * author : 김보민
- * version : 1.0
- */
-
 var areaCdList = [];	// 지역 코드 목록
 
 var abnExitSttnCdList = [];	// 이상 해제 상황 코드 목록
@@ -132,13 +32,9 @@ var	currTrnsprtPlanNo = "";
 var	routePolyline = "";
 var	accChangeFlg = "";
 var	bounceTarget = "";
-var trRestRoadData = null;	// 통행제한도로 데이터
-var vlTunnelData   = null;	// 장대터널 데이터
-var trRestRdMinZoom = 10;	// 통행제한도로 표시 시작 레벨
 
 var	rmax = 35; //Maximum radius for cluster pies
 var	cluster = tsmap.markerClusterGroup({
-	// disableClusteringAtZoom: 5,
 	maxClusterRadius: 80,
 	iconCreateFunction: defineClusterIcon //this is where the magic happens
 });
@@ -155,10 +51,6 @@ var	flag = "1";  // test 용 flag
 
 var heatLayer = new tsmap.heatLayer();
 var poplTnLayer;
-var waterSourceLayer;	// 상수원보호구역
-var trRestrictLayer;	// 통행제한도로
-var vlTunnelLayer;		// 장대터널
-var insttMarkers = tsmap.layerGroup();	// 대응기관 POI
 
 var carList = []; 		//차량리스트 저장
 var preReportAccNumber = 0;  //이전 사고신고 시퀀스 번호
@@ -210,11 +102,11 @@ function onInit() {
 	selectDgstOrgList();  // 주무부처 리스트 조회
 	selectExitCdList();   // 상황해제코드 목록 조회
 
-	// // 이벤트리스너
-	// // 알람버튼 클릭 이벤트(클릭 시 이상운행 최상단으로 스크롤)
-	// $("body").on("click", "#btnAlim", function() {
-	// 	$("#carLists").mCustomScrollbar("scrollTo", $("#abnormalSub"));
-	// });
+	// 이벤트리스너
+	// 알람버튼 클릭 이벤트(클릭 시 이상운행 최상단으로 스크롤)
+	$("body").on("click", "#btnAlim", function() {
+		$("#carLists").mCustomScrollbar("scrollTo", $("#abnormalSub"));
+	});
 	
     //차량리스트 선택 이벤트
 	$("body").on("click", ".mpop01 .mpopCont dl dd ul li", function() {
@@ -240,25 +132,25 @@ function onInit() {
 		}
 	});
 
-	// // 팝업 창 취소버튼 이벤트
-	// $("body").on("click","#trmnlNoticeCancle",function(){
-	// 	$("#trmnlNoticePop").data("kendoDialog").close();
-	// });
+	// 팝업 창 취소버튼 이벤트
+	$("body").on("click","#trmnlNoticeCancle",function(){
+		$("#trmnlNoticePop").data("kendoDialog").close();
+	});
 
-	// //운전자통화 팝업 취소 이벤트
-	// $("body").on("click","#driverCallCancle",function(){
-	// 	$("#driverCallPop").data("kendoDialog").close();
-	// });
+	//운전자통화 팝업 취소 이벤트
+	$("body").on("click","#driverCallCancle",function(){
+		$("#driverCallPop").data("kendoDialog").close();
+	});
 	
-	// //관계기관전파 팝업 취소 이벤트
-	// $("body").on("click","#orgSpreadCancle",function(){
-	// 	$("#orgSpreadPop").data("kendoDialog").close();
-	// });
+	//관계기관전파 팝업 취소 이벤트
+	$("body").on("click","#orgSpreadCancle",function(){
+		$("#orgSpreadPop").data("kendoDialog").close();
+	});
 	
-	// //상황종료 팝업 취소 버튼 클릭 이벤트
-	// $("body").on("click","#situationEndCancel",function(){
-	// 	$("#situationEndPop").data("kendoDialog").close();
-	// });
+	//상황종료 팝업 취소 버튼 클릭 이벤트
+	$("body").on("click","#situationEndCancel",function(){
+		$("#situationEndPop").data("kendoDialog").close();
+	});
 	
 	// 상황종료 팝업 상황종료 버튼 클릭 이벤트
 	$("body").on("click","#situationEndExecute",function() {
@@ -300,15 +192,15 @@ function onInit() {
 		});
 	});
 	
-	// //사고전환 팝업 취소 이벤트
-	// $("body").on("click","#regitAccidentCancle",function(){
-	// 	$("#regitAccidentPop").data("kendoDialog").close();
-	// });
+	//사고전환 팝업 취소 이벤트
+	$("body").on("click","#regitAccidentCancle",function(){
+		$("#regitAccidentPop").data("kendoDialog").close();
+	});
 
-	// //사고신고 팝업 취소 이벤트
-	// $("body").on("click","#reportAccidentCancle",function() {
-	// 	$("#reportAccidentPop").data("kendoDialog").close();
-	// });
+	//사고신고 팝업 취소 이벤트
+	$("body").on("click","#reportAccidentCancle",function() {
+		$("#reportAccidentPop").data("kendoDialog").close();
+	});
 	
 	//사고 신고 해제 버튼 클릭 이벤트
 	$("body").on("click","#reportEndExecute", function(){
@@ -418,8 +310,6 @@ function onInit() {
         arg.crd_y = $('#detl_y').text();
         arg.dist  = 3;	// km
         arg.ntcnCn = $('#txtArndBrd').val();
-        //arg.ntcnCn = "반경 " + arg.dist + "km 내 화물차 사고 발생. 주의운전 하시기 바랍니다.";
-        //arg.ntcnCn = "주의운전 하시기 바랍니다. 반경 3km 내 화물차 사고가 발생했습니다."; 
         
         var sendConfirm = confirm('사고차량 근접 차량 단말로 사고 메세지를 전송합니다.');
 	   
@@ -437,7 +327,6 @@ function onInit() {
 	// 차량 목록 전체 단말기 알림 전송 버튼 클릭 시
 	$("body").on("click", "#sendNoticeAll",function() {
         var arg = {};
-        //var selSidoItem = $("#dlPushMsgArea").data("kendoDropDownList");
 		
 		arg.ntcnTrnsmisCode = 0; // 알림전송코드
 		arg.ntcnCn          = nvl(document.getElementById("noticeMsg").value.trim());		            // 메세지
@@ -449,7 +338,6 @@ function onInit() {
 		if(ntcnCnLen > 0){
 			var areaCdArr=new Array();
 			for(i=0; i < ntcnCnLen; i++){
-				//console.log( $('input:checkbox[name="dlPushMsgArea"]:checked').eq(i).val() );
 				areaCdArr.push($('input:checkbox[name="dlPushMsgArea"]:checked').eq(i).val());
 			}
 			console.log(areaCdArr);
@@ -466,7 +354,6 @@ function onInit() {
 			return false;
 		}
 		
-        //var sendConfirm = confirm("[" + selSidoItem.text() + '] 지역 운행 차량 단말로 메세지를 전송합니다.');
 		var sendConfirm = confirm('선택된 지역 운행 차량 단말로 메세지를 전송합니다.');
 	   
         if (sendConfirm) {
@@ -569,28 +456,12 @@ function onInit() {
 				$('#orgSpreadPop').data("kendoDialog").close();
 			};
 		});
-
-		
-		/*
-		arg.mpno = document.getElementById("detl_trmnlNoMini").innerHTML;         // 휴대폰번호
-		arg.trnsprt_plan_no = document.getElementById("planNoMini").innerHTML;
-		arg.cntrmsr_div_cd = '100';
-		arg.sms_msg = document.getElementById("spreadMsg").value;        // 메세지
-		arg.rcverNm = ''   // 운전자명
-		arg.car_reg_no = document.getElementById("carRegNoMini").innerHTML;
-		arg.vin = document.getElementById("vinMini").innerHTML;
-		*/
-		
 	});
 	
 	/**
-	 * @name         : regitAccidentExecuteClickHandler
 	 * @description  : 상세보기의 사고접수 버튼을 통한 사고 전환
-	 * @date         : 2020. 03. 24.
-	 * @author	     : 이우철
 	 */
 	$("body").on("click", "#regitAccidentExecute", function(e) {
-
 		// 사고 전환 처리
 		var arg = {};
 		
@@ -661,23 +532,19 @@ function onInit() {
 			target01Cont     += '<colgroup><col width="70"><col width=""></colgroup>';
 			target01Cont     += '<tbody>';
 			target01Cont     += '<tr><td>지역:</td>';
-			//target01Cont     += '<td><select id="dlPushMsgArea" class="select"></select></td>';
 			target01Cont     += '<td id="dlPushMsgArea">';
 			target01Cont     += '<input type="button" value=" 지역전체 선택,해제 " id="sendAreaCheckAllbtn" style="cursor:pointer"/>';
 			target01Cont     += '	<ul style="list-style:none;">';
-			//target01Cont     += '<input type="checkbox" name="" value="01">지역명';
 			for(i=0; i < areaCdList.length;i++){
 				target01Cont     += '<li style="width:100px;margin:3px 0 3px 0;float:left">';
 				target01Cont     += '<input type="checkbox" name="dlPushMsgArea" id="dlPushMsgArea'+i+'" value="'+areaCdList[i].sidoCd+'">';
 				target01Cont     += '<label for="dlPushMsgArea'+i+'" style="cursor:pointer;margin:0 0 0 3px">'+areaCdList[i].sidoNm+'</label>';
 				target01Cont     += '</li>';				
 			}
-
 			target01Cont     += '</ul></td>';
 			target01Cont     += '</tr>';
 			target01Cont     += '<tr><td>내용:</td><td><textarea id="noticeMsg" class="textarea"></textarea></td></tr>';
 			target01Cont     += '</tbody></table>';
-			
 			target01Cont     += '<div class="pbtnBox">';
 			target01Cont     += '<a href="javascript:void(0)" class="btype01" id="trmnlNoticeCancle" @click="trmnlNoticeCancle()"><span>취소</span></a>';
 			target01Cont     += '<a href="javascript:void(0)" class="btype02" id="sendNoticeAll" style="width:100px;"><span>단말기 알림 전송</span></a>';
@@ -695,125 +562,8 @@ function onInit() {
 			});
 			
 			$("#trmnlNoticePop").data("kendoDialog").open();
-			/*
-			  
-			$("#dlPushMsgArea").kendoDropDownList({				
-	            optionLabel: {
-	            	sidoNm: "전체",
-	            	sidoCd: "00"
-	            },
-	            autoWidth: true,
-	            dataTextField: "sidoNm",
-	            dataValueField: "sidoCd",
-	            dataSource: areaCdList
-			});
-			*/
 		}
 	});
-	
-	// //상수원보호구역 버튼 클릭 시
-	// document.getElementById("waterSource").addEventListener("click", function() {
-	// 	var ck = $(this).children().hasClass("on");
-
-	// 	if (ck) {
-	// 		$(this).children().removeClass("on");
-	// 		waterSourceLayer.remove();
-	// 	} else {
-	// 		$(this).children().addClass("on");
-
-	// 		ajax(true, contextPath+'/vc/selectLmttZone', 'body', '조회중입니다.', null, function (data) {
-	// 			if (data != null) {
-	// 				waterSourceLayer = tsmap.geoJSON(data, {
-	// 					style: function() {
-	// 						return {
-	// 							weight: 2,
-	// 							opacity: 1,
-	// 							color: "#FF5A5A",
-	// 							dashArray:"3",
-	// 							fillOpacity:0.7
-	// 						};
-	// 					},
-	// 					onEachFeature: function(feature, layer){
-	// 						//layer.bindPopup(feature.properties.Description);
-	// 						layer.bindTooltip("<div class=\"tooltipbox2 type01\"><h4>" + feature.properties.spotNm + "</h4>(" + feature.properties.clCdNm + ")</div>", { closeOnClick: false, autoClose: false, autoPan: false });
-	// 					}
-	// 				}).addTo(map);
-	// 				//map.fitBounds(waterSourceLayer.getBounds());
-	// 			}
-	// 		});
-	// 	}
-	// });
-
-	// //통행제한도로 버튼 클릭 시
-	// document.getElementById("trafficRestriction").addEventListener("click", function() {
-	// 	var ck = $(this).children().hasClass("on");
-
-	// 	if (ck) {
-	// 		$(this).children().removeClass("on");
-	// 		trRestrictLayer.remove();
-	// 		trRestRoadData = null;
-	// 	} else {
-	// 		if (map.getZoom() < trRestRdMinZoom) {
-	// 			map.setZoom(trRestRdMinZoom);
-	// 		}
-			
-	// 		$(this).children().addClass("on");
-
-	// 		ajax(true, contextPath+'/vc/selectLmttRoad', 'body', '조회중입니다.', null, function (data) {
-	// 			if (data != null) {
-	// 				trRestRoadData = data;
-	// 				dispRestRoad();
-	// 			}
-	// 		});
-	// 	}
-	// });
-	
-	//장대터널 버튼 클릭 시
-	document.getElementById("longTunnel").addEventListener("click", function() {
-		var ck = $(this).children().hasClass("on");
-
-		if (ck) {
-			$(this).children().removeClass("on");
-			vlTunnelLayer.remove();
-			vlTunnelData = null;
-		} else {
-			$(this).children().addClass("on");
-
-			ajax(true, contextPath+'/vc/selectTunnel', 'body', '조회중입니다.', null, function (data) {
-				if (data != null) {
-					vlTunnelData = data;
-					
-					vlTunnelLayer = tsmap.geoJSON(data, {
-						style: function(){
-							return {
-								weight: 3,
-								opacity: 1,
-								color: "#A349A4",
-								dashArray:"5",
-								fillOpacity:0.4
-							};
-						},
-						onEachFeature: function(feature, layer){
-							layer.bindTooltip("<div class=\"tooltipbox2 type01\"><h4>" + feature.properties.tunnelNm + " 터널</h4><br />노선 : " + feature.properties.routeNm + "<br />총 연장 : " + feature.properties.extn + "</div>", { closeOnClick: false, autoClose: false, autoPan: false });
-						}
-					}).addTo(map);
-				}
-			});
-		}
-	});
-	
-	// //대응기관 버튼 클릭 시
-	// document.getElementById("corInstt").addEventListener("click", function() {
-	// 	var ck = $(this).children().hasClass("on");
-
-	// 	if (ck) {
-	// 		$(this).children().removeClass("on");
-	// 		insttMarkers.clearLayers();
-	// 	} else {
-	// 		$(this).children().addClass("on");
-	// 		dispInsttPOI();
-	// 	}
-	// });
 
 	// 상세보기 단말기 알림 클릭 이벤트
 	document.getElementById("trmnlNotice").addEventListener("click", function() {
@@ -936,7 +686,6 @@ function onInit() {
 				target03Cont     += '<td>' + data[i].mbtlnum   + '</td>';
 				target03Cont     += '</tr>';
 			}
-			
 			target03Cont     += '</table>';
 			target03Cont     += '<div class="pbtnBox"><a href="javascript:void(0)" class="btype01" id="orgSpreadCancle" @click="orgSpreadCancle()"><span>취소</span></a><a href="javascript:void(0)" class="btype02" id="sendOrgSpread" style="width:100px;"><span>관계기관 전파</span></a></div>';
 
@@ -1602,90 +1351,6 @@ function onInit() {
 			} else {
 				alert("등록된 운송계획경로가 없습니다.");
 			}
-		}
-	});
-}
-
-/**
- * @description  : 통행제한도로 표출
- */
-var dispRestRoad = function() {
-	if (trRestrictLayer != undefined) {
-		trRestrictLayer.clearLayers();
-	}
-	
-	// 폴리라인에 포함된 포인트 다 돌면서 화면 내에 포함된 점이 하나라도 있으면 그림. 
-	if (map.getZoom() >= trRestRdMinZoom) {
-		var east = map.getBounds().getEast();
-		var west = map.getBounds().getWest();
-		var north = map.getBounds().getNorth();
-		var south = map.getBounds().getSouth();
-
-		// 제한도로 레이어 초기화
-		trRestrictLayer = tsmap.geoJSON([], { 
-			style: { weight: 5, opacity: 0.7, color: "#60C5F1", dashArray:"5", fillOpacity:0.5 },
-			onEachFeature: function(feature, layer) {
-				layer.bindTooltip("<div class=\"tooltipbox2 type01\"><h4>통행제한도로</h4><br />요일 : " + feature.properties.day + "<br />대상 : 화물차<br />시간 : " + feature.properties.time + "</div>", { closeOnClick: false, autoClose: false, autoPan: false	});
-			}
-		}).addTo(map);
-		
-		// 현재범위 내의 제한도로 표시
-		trRestRoadData.features.forEach(function (item, index, array) {
-			item.geometry.coordinates.forEach(function (coord) {
-				var x = coord[0]; 
-				var y = coord[1];
-				
-				if (x > west && x < east) {
-					if (y > south && y < north) {
-						trRestrictLayer.addData(item);
-						return;
-					}
-				}
-			});
-		});
-	}
-}
-
-// 방재기관 POI 표출
-var dispInsttPOI = function() {
-	//if (insttLayer != undefined) {
-	//	insttLayer.clearLayers();
-	//}
-	
-	ajax(true, contextPath+'/vc/selectInsttInfo', 'body', '조회중입니다.', {}, function (data) {
-		insttMarkers.clearLayers();
-		
-		if (data != null) {			
-			var ipIcon = tsmap.icon({  		// 경찰서 마커
-				iconUrl: contextPath + '/images/ico/ico_ip.png',
-				iconSize:   [34, 34]
-			});
-			var ifIcon = tsmap.icon({  		// 소방서 마커
-				iconUrl: contextPath + '/images/ico/ico_if.png',
-				iconSize:   [34, 34]
-			});
-
-			if (data.length > 0)  {
-				for (var i=0; i < data.length; i++) {
-					var insttMaker = null;
-					
-					if (data[i].sclas == "경찰서") {
-						insttMaker = tsmap.marker(new tsmap.latLng(data[i].yCrd, data[i].xCrd), {icon:ipIcon});
-						insttMaker.bindTooltip("<div class=\"tooltipbox2 type02\"><h4>" + data[i].spotNm + "</h4>연락처 : " + nvl(data[i].telno) + "</div>", { closeOnClick: false, autoClose: false, autoPan: false });
-					} else if (data[i].sclas == "소방서") {
-						insttMaker = tsmap.marker(new tsmap.latLng(data[i].yCrd, data[i].xCrd), {icon:ifIcon});
-						insttMaker.bindTooltip("<div class=\"tooltipbox2 type01\"><h4>" + data[i].spotNm + "</h4>연락처 : " + nvl(data[i].telno) + "</div>", { closeOnClick: false, autoClose: false, autoPan: false });
-					}
-					
-					if (insttMaker != null) {
-						insttMaker.addTo(insttMarkers);
-					}
-				}
-				
-				insttMarkers.addTo(map);
-			}
-		} else {
-			alert("조회 결과가 없습니다.");
 		}
 	});
 }

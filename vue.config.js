@@ -13,6 +13,16 @@ module.exports = {
         changeOrigin: true,
         secure: false
       },
+      '/vc': {
+        target: 'http://localhost:8082',
+        changeOrigin: true,
+        secure: false
+      },
+      '/cmmn': {
+        target: 'http://localhost:8082',
+        changeOrigin: true,
+        secure: false
+      }
     },
   }
 }
