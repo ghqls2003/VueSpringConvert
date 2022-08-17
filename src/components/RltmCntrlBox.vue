@@ -1,7 +1,5 @@
 <script>
 
-var areaCdList = [];	// 지역 코드 목록
-
 var abnExitSttnCdList = [];	// 이상 해제 상황 코드 목록
 var abnExitMthdCdList = [];	// 이상 해제 확인방법 코드 목록
 var abnExitResnCdList = [];	// 이상 해제 사유 코드 목록
@@ -15,36 +13,21 @@ var acdExitMthdCdList = [];	// 사고 해제 상태 코드 목록
 
 var regltZonePolygonGroup = [];
 var lmttZonePolygonGroup  = [];
-var sidoAreaPolygonGroup  = [];
 var toggleFlag = "";
 var situFlag = "";
 var filterFlag = "";
 var accidentState = [];
 var map = '';
-var firstViewNoPopup = "NOPOPUP";
-var	markerGroup = [];
-var	layerGroup =  [];
-var	markerPopOnOff =  new Map();  // marker 팝업 여부
-var	routeMarkerGroup = [];
 var	accMarkerGroup = [];
-var	currSelectCarId =  "";
 var	currTrnsprtPlanNo = "";
 var	routePolyline = "";
 var	accChangeFlg = "";
 var	bounceTarget = "";
 
 var	rmax = 35; //Maximum radius for cluster pies
-var	cluster = tsmap.markerClusterGroup({
-	maxClusterRadius: 80,
-	iconCreateFunction: defineClusterIcon //this is where the magic happens
-});
 
 var metadata = JSON.parse('{"fields": {"type": {"lookup": {"1": "사고", "2": "이상", "3": "정상"}}}}');
 var	categoryField = 'type'; //This is the fieldname for marker category (used in the pie and legend)
-var	geojson = '';
-var	locErrorFlag = "1";
-var	sirenCnt = 0;
-var	accCnt = 0;
 var	auth = '';
 var	ldong = '';
 var	flag = "1";  // test 용 flag
@@ -52,8 +35,6 @@ var	flag = "1";  // test 용 flag
 var heatLayer = new tsmap.heatLayer();
 var poplTnLayer;
 
-var carList = []; 		//차량리스트 저장
-var preReportAccNumber = 0;  //이전 사고신고 시퀀스 번호
 var secondLoginHost = "/";
 
 var eventSource = new EventSource(contextPath + "/vc/selectRealTimeCarInfo");
@@ -98,8 +79,6 @@ function onInit() {
 	//sseCall();
     
 	//검색필터에서 사용할 목록 조회
-	selectAreaSidoList(); // 시도 리스트 조회
-	selectDgstOrgList();  // 주무부처 리스트 조회
 	selectExitCdList();   // 상황해제코드 목록 조회
 
 	// 이벤트리스너
@@ -159,7 +138,6 @@ function onInit() {
 		param.vin = document.getElementById('orgSpread').getAttribute("vin");
 		param.id = document.getElementById('orgSpread').getAttribute("vin");
 		
-		//ajax(true, contextPath+'/vc/situationEndExecute', 'body', '조회중입니다.', arg, function (data) {   // mongoDB 실시간 데이터를 정상으로 update
 		ajax(true, contextPath+'/vc/updateAbnormalExit', 'body', '조회중입니다.', param, function (data) {   // 상황종료 이력 및 mongoDB 정상으로 update
 			if (data == 1) {  // 정상
 				alert("상황종료 되었습니다.");
@@ -179,7 +157,6 @@ function onInit() {
 		param.vin = document.getElementById('orgSpread').getAttribute("vin");
 		param.id = document.getElementById('orgSpread').getAttribute("vin");
 		
-		//ajax(true, contextPath+'/vc/situationEndExecute', 'body', '조회중입니다.', arg, function (data) {   // mongoDB 실시간 데이터를 정상으로 update
 		ajax(true, contextPath+'/vc/updateAccExit', 'body', '조회중입니다.', param, function (data) {   // 상황종료 이력 및 mongoDB 정상으로 update
 			if (data == 1) {  // 정상
 				alert("사고 종료 되었습니다.");
@@ -213,42 +190,6 @@ function onInit() {
 			}
 		});
 	});
-	
-	// 필터링 조건 시/도 변경 이벤트 
-	document.getElementById('area').onchange = function() {
-		// 시도 경계 초기화
-		for (var i=0, len=sidoAreaPolygonGroup.length; i<len; i++) {
-			map.removeLayer(sidoAreaPolygonGroup[i]);
-		}
-		sidoAreaPolygonGroup=[];
-
-		if (document.getElementById("area").value == "00") {  // 전체
-		} else {
-			var arg = {};
-			arg.sido_cd = document.getElementById("area").value;
-			ajax(true, contextPath+'/vc/selectSidoArea', 'body', '조회중입니다.', arg, function (data) {   // 시도 경계 조회
-				if (data != null) {
-
-					var polygon = tsmap.geoJSON(data,{
-						style: function() {
-							return {
-								weight: 3,
-								opacity: 1,
-								color: "red",
-								dashArray:"5",
-								fillOpacity:0.05
-							};
-						},
-						onEachFeature: function(feature, layer) {
-							//layer.bindPopup(feature.properties.Description);
-						}
-					}).addTo(map);
-					sidoAreaPolygonGroup[sidoAreaPolygonGroup.length] = polygon;
-					map.fitBounds(polygon.getBounds());
-				}
-			});
-		}
-	};
 
 	//방재정보 물질 변경 이벤트
 	$("body").on("change","#matterS",function() {
@@ -278,30 +219,6 @@ function onInit() {
 			$("#bj_cont").html(target05Cont);
 		});
 	});
-	
-	//필터 물질용량 검색범위 확인
-	document.getElementById('quantityLow').onkeyup = function() {
-		document.getElementById('quantityLow').value=document.getElementById('quantityLow').value.replace(/[^0-9]/g,"");
-		var low = document.getElementById("quantityLow").value;
-		var high = document.getElementById("quantityHigh").value;
-		if (parseInt(low) > parseInt(high)) {
-			alert("최소값은 최대값보다 클 수 없습니다.");
-			document.getElementById("quantityLow").value="0";
-			document.getElementById("quantityHigh").value="9999";
-		}
-	};
-
-	//필터 물질용량 검색범위 확인
-	document.getElementById('quantityHigh').onkeyup = function() {
-		document.getElementById('quantityHigh').value=document.getElementById('quantityHigh').value.replace(/[^0-9]/g,"");
-		var low = document.getElementById("quantityLow").value;
-		var high = document.getElementById("quantityHigh").value;
-		if (parseInt(low) > parseInt(high)) {
-			alert("최소값은 최대값보다 클 수 없습니다.");
-			document.getElementById("quantityLow").value="0";
-			document.getElementById("quantityHigh").value="9999";
-		}
-	};
 	
 	// 주변차량 사고 알림 전송 버튼 클릭 시
 	$("body").on("click", "#btnAroundAccInfo", function() {
@@ -502,7 +419,6 @@ function onInit() {
 		});
 	});
 	
-	//$("#sendAreaCheckAllbtn",function() {
 	$("body").on("click", "#sendAreaCheckAllbtn",function() {
 		var chkcnt=$('input:checkbox[name="dlPushMsgArea"]:checked').length;
 		var checkedval=false;
@@ -1228,54 +1144,6 @@ function onInit() {
 		});
 	});
 	
-	// 필터 초기화 버튼 클릭 시
-	document.getElementById("filterReset").addEventListener("click", function() {
-
-		// 운행상태
-		document.getElementById("chkStatus01").checked = true;
-		document.getElementById("chkStatus03").checked = false;
-		document.getElementById("chkStatus04").checked = false;
-		// 차량상태
-		document.getElementById("carState01").checked = true;
-		document.getElementById("carState02").checked = false;
-		document.getElementById("carState03").checked = false;
-		// 사전운송계획
-		document.getElementById("carPlan01").checked = true;
-		document.getElementById("carPlan02").checked = false;
-		document.getElementById("carPlan03").checked = false;
-
-		// 주무부처
-		var orgDrop = $("#org").data("kendoDropDownList");
-		orgDrop.select(0);
-		// 지역
-		var areaDrop = $("#area").data("kendoDropDownList");
-			// 지자체 권한 지역필터
-			if (auth == "Z") {
-				var areaDrop = $("#area").data("kendoDropDownList");
-				areaDrop.select(function(dataItem) {
-				    return dataItem.sidoCd === ldong;
-				});
-				$("#area").attr("disabled", true);
-				areaDrop.enable(false);
-				document.getElementById('area').onchange();
-			} else {
-				areaDrop.select(0);
-			}
-			// 지자체 권한 지역필터 하단
-			
-		// 시도 경계 초기화
-		for (var i=0, len= sidoAreaPolygonGroup.length; i<len; i++) {
-			map.removeLayer(sidoAreaPolygonGroup[i]);
-		}
-		sidoAreaPolygonGroup=[];
-
-		// 물질
-		document.getElementById("matterName").value="";
-		// 적재량
-		document.getElementById("quantityLow").value="0";
-		document.getElementById("quantityHigh").value="9999";
-	});
-	
 	//경로보기 이벤트
 	$("body").on("click","#routeBtn",function() {  // 경로보기 버튼
 		if (routeMarkerGroup.length > 0) {  // 경로 지움
@@ -1746,64 +1614,6 @@ var carFiltering = function(item) {
 }
 
 /**
- * @description  : 시도 리스트 조회
- */
-var selectAreaSidoList = function(data) {
-
-	var arr = [];
-
-	ajax(true, contextPath+'/cmmn/selectAreaSidoList', 'body', '처리중입니다.', {}, function (data) {
-		areaCdList = data;	// 다른 곳에서도 쓰기 위해 전역변수(areaCdList)에 저장.
-
-		$("#area").kendoDropDownList({
-            optionLabel: {
-            	sidoNm: "전체",
-            	sidoCd: "00"
-            },
-            autoWidth: true,
-            dataTextField: "sidoNm",
-            dataValueField: "sidoCd",
-            dataSource: areaCdList
-		});
-			// 지자체 권한 지역필터
-			if (auth == "Z") {
-				var areaDrop = $("#area").data("kendoDropDownList");
-				areaDrop.select(function(dataItem) {
-				    return dataItem.sidoCd === ldong;
-				});
-				$("#area").attr("disabled", true);
-				areaDrop.enable(false);
-				document.getElementById('area').onchange();
-			} else {
-				var areaDrop = $("#area").data("kendoDropDownList");
-				areaDrop.select(0);
-			}
-			// 지자체 권한 지역필터 하단		
-
-	});
-}
-
-/**
- * @description  : 주무부처 리스트 조회
- */
-var selectDgstOrgList = function(data) {
-
-	var arr = [];
-	var arg={};
-	arg.cdCl = 'DGST_DIV_CD';
-	ajax(true, contextPath+'/cmmn/CommonCode', 'body', '조회중입니다.', arg, function (data) {
-		arr[0] = "<option value='00'>전체</option>";
-		for (var i=0, len=data.length; i<len; i++) {
-			var item = data[i];
-			arr[i+1]="<option value='"+item.cdId+"'>"+item.cdDc+"</option>";
-		}
-		document.getElementById("org").innerHTML=arr.join("");
-		$("#org").kendoDropDownList();
-	});
-
-}
-
-/**
  * @name         : selectExitCdList
  * @description  : 상황해제코드 다중 목록 조회
  * @date         : 2020. 03. 20.
@@ -1829,7 +1639,6 @@ var selectExitCdList = function(data) {
 	});
 
 }
-
 
 /**
  * @name         : allPopupClose
@@ -1869,81 +1678,6 @@ allPopupClose = function(data) {
 	// 방재정보
 	if ($("#bangjaePop").data("kendoDialog") != undefined) {
 		$("#bangjaePop").data("kendoDialog").close();
-	}
-}
-
-/**
- * @name         : statusTotal
- * @description  : 필터 운행상태 전체선택 이벤트를 처리한다.
- * @date         : 2018. 09. 19.
- * @author	     : kbm
- */
-function statusTotal(chkbox){
-	if ( chkbox.checked == true ) {
-		document.getElementById("chkStatus03").checked = false;
-		document.getElementById("chkStatus04").checked = false;
-	}
-}
-
-/**
- * @name         : status
- * @description  : 필터 운행상태 개별선택 이벤트를 처리한다.
- * @date         : 2018. 09. 19.
- * @author	     : kbm
- */
-function status(chkbox){
-	if ( chkbox.checked == true ) {
-		document.getElementById("chkStatus01").checked = false;
-	}
-}
-
-/**
- * @name         : carStateTotal
- * @description  : 필터 차량상태 전체선택 이벤트를 처리한다.
- * @date         : 2018. 09. 19.
- * @author	     : kbm
- */
-function carStateTotal(chkbox){
-	if ( chkbox.checked == true ) {
-		document.getElementById("carState02").checked = false;
-		document.getElementById("carState03").checked = false;
-	}
-}
-
-/**
- * @name         : carState
- * @description  : 필터 차량상태 개별선택 이벤트를 처리한다.
- * @date         : 2018. 09. 19.
- * @author	     : kbm
- */
-function carState(chkbox){
-	if ( chkbox.checked == true ) {
-		document.getElementById("carState01").checked = false;
-	}
-}
-
-/**
- * @name         : carPlanTotal
- * @description  : 필터 사전운송계획 전체선택 이벤트를 처리한다.
- * @date         : 2018. 09. 19.
- * @author	     : kbm
- */
-function carPlanTotal(chkbox){
-	if ( chkbox.checked == true ) {
-		document.getElementById("carPlan02").checked = false;
-		document.getElementById("carPlan03").checked = false;
-	}
-}
-
-/**
- * @name         : carPlan
- * @description  : 필터 사전운송계획 개별선택 이벤트를 처리한다.
- * @date         : 2018. 09. 19.
- * @author	     : kbm
- */
-function carPlan(chkbox){
-	if ( chkbox.checked == true ) {
-		document.getElementById("carPlan01").checked = false;
 	}
 }
 
@@ -2466,344 +2200,6 @@ eventSource.addEventListener('message', sseCall);
 eventSource.addEventListener('myevent', function(e) {
     // 'myevent' 이벤트의 데이터 처리
 }, false);
-
-/**
- * @name         : sseCall
- * @description  : Server-Sent Events를 등록하여 실시간 관제정보를 수신하여 처리한다.
- * @date         : 2018. 09. 19.
- * @author	     : kbm
- */
-/* 기존에 sseCall을 통해 sse를 특정 주기로 생성/클로즈를 반복하도록 구현되어 있던 것을
- *  eventsource.js 라이브러리 내 intaval과 bufferSizeLimit을 수정하였음 - 20200210 */
-function sseCall(e) {
-
-	var orgResult      = JSON.parse(e.data);
-	var result         = orgResult.data;
-	var reportAccident = orgResult.reportAccident;
-	var carDataLen     = result.length;
-	var todLen         = orgResult.today.length;
-	var todayIng       = 0;
-	var todayEnd       = 0;
-	var todayCnt       = 0;
-
-	/* 상단 오늘 내일 운송정보 표출*/
-	for (var i=0, len= todLen; i<len; i++) {
-		var temp = orgResult.today[i];
-		todayCnt += temp.cnt;
-		
-		if (temp.opratCd == "300" || temp.opratCd == "400") {
-			todayIng += temp.cnt;
-		} else if (temp.opratCd == "900") {
-			todayEnd += temp.cnt;
-		}
-	}
-
-	document.getElementById("todayIng").innerHTML = todayIng;	// 운송중
-	document.getElementById("todayEnd").innerHTML = todayEnd;	// 운송종료
-	document.getElementById("todayCnt").innerHTML = todayCnt;	// 운송계획
-	document.getElementById("tomorrowCnt").innerHTML = nvl(orgResult.tomorrow.cnt);
-
-	if (auth == "M" || auth == "S") {  // 관제요원 권한
-		// 사고신고 리스트에서 제외 시 아래 주석 해제
-		// 자동감지(A03), 통신단절(A06), 터널미진출(A07) 사고 
-		/*
-		for (var i = 0; i<reportAccident.length; i++) {
-			var item = reportAccident[i];
-
-			if (item.acdntTyCd == 'A06' || item.acdntTyCd == 'A07') {
-				reportAccident.splice(i, 1)
-				i--;
-			}
-		}*/
-		
-		// 사고신고 건수
-		document.getElementById("reportAccdintCnt").innerHTML = reportAccident.length;
-
-		reportAccidentList(reportAccident);
-		
-		if (reportAccident.length > 0) {
-			if (preReportAccNumber < reportAccident[0].acdntSttemntSn) {
-				sirenPlay();
-			}
-
-			preReportAccNumber = reportAccident[0].acdntSttemntSn;
-		}
-	}
-
-	var abnormalCnt = 0;	// 이상
-	var normalCnt   = 0;	// 정상
-	var alimCnt     = 0;	// 이상운행
-	var acCnt       = 0;	// 사고
-
-	for (var m=0, len=markerGroup.length; m<len; m++) {  // 이상/정상 마커 제거
-		// 루프 톨면서 지우기
-		map.removeLayer(markerGroup[m]);
-		cluster.removeLayer(markerGroup[m]);
-	}
-	
-	for (var j=0, len=accMarkerGroup.length; j<len; j++) {  // 사고 마커 제거
-		map.removeLayer(accMarkerGroup[j]);
-	}
-	
-	markerGroup= [];
-	layerGroup = [];
-	
-	var east = map.getBounds().getEast();
-	var west = map.getBounds().getWest();
-	var north = map.getBounds().getNorth();
-	var south = map.getBounds().getSouth();
-	
-	map.addLayer(cluster);
-	
-	markerPopOnOff.forEach(function (item, key, mapObj) { // 조회 전 현재값 여부 N으로 초기화
-		item.set("curr", "N");
-	});
-
-	carList = result;  //차량리스트 정보를 전역변수에 담는다.
-
-	for (var k = 0; k<carDataLen; k++) {
-		var targetItem = result[k];
-
-		// 사고,이상 건수 카운팅
-		if (targetItem.evtType != "--" || targetItem.accCode != "--") { 
-			alimCnt++;
-			
-			if (targetItem.accCode != "--") {
-				acCnt++;
-			}
-		}
-		
-		var filterYn = carFiltering(targetItem);
-		
-		// 사고접수차량 별도 처리
-		for (var i = 0; i<reportAccident.length; i++) {
-			if (reportAccident[i].carRegNo == targetItem.carRegNo) {
-				filterYn = "N";
-				break;
-			}
-		}
-
-		if (filterYn=="Y") {  // 필터 여부
-
-			if (targetItem.id == currSelectCarId) {
-				currSelectCarId = "";
-				var ck = $(".mpToggle").hasClass("on");
-				if (!ck) { // 상세창 떠 있을 때
-					$(".mpToggle").addClass("on"); 
-					$(".mpbCont, .mpbHeader").hide();
-				}
-			}
-
-			if (document.getElementById("list"+targetItem.id) != null) {
-				var child = document.getElementById("list"+targetItem.id);
-				child.classList.remove( 'on' );
-				child.style.display="none";
-			}
-
-		} else {
-
-			var stsCd;
-			var id = targetItem.id;
-			var y;
-			var x;
-
-			if (targetItem.coord==undefined) {
-				y="0";
-				x="0";
-			} else {
-				y = targetItem.coord.y == "--" ? "0" : targetItem.coord.y;
-				x = targetItem.coord.x == "--" ? "0" : targetItem.coord.x;
-			}
-
-			var angle = parseInt(targetItem.az / 45) + 1;
-			
-			// az가 360이 넘는 경우를 위한 처리
-			if (targetItem.az >= 360) {
-				angle = (parseInt(targetItem.az / 45) % 8) + 1;
-			}
-			
-			var prevEvtAcc = "default";
-			var evt_cd = targetItem.evtType == null ? "" : targetItem.evtType;
-			var acc_cd = targetItem.accCode == null ? "" : targetItem.accCode;
-			var currEvtAcc = evt_cd+acc_cd;
-			var evt_time = targetItem.evtTime;
-			var event_dt="";
-
-			if (evt_time != undefined){
-				if (evt_time.length > 10) {
-					event_dt = "20" + evt_time.substring(0,2) + "." + evt_time.substring(2,4) + "." + evt_time.substring(4,6) + " " + evt_time.substring(6,8) + ":" + evt_time.substring(8,10);
-				}
-			}
-
-			if ( x == "") x = "0";
-			if ( y == "") y = "0";
-            if ( x.substring(0, 1) == ".") x = "0";
-            if ( y.substring(0, 1) == ".") y = "0";
-
-
-			if (evt_cd == "--" && acc_cd == "--") { // 정상
-				stsCd = "3";
-				normalCnt++;
-			} else if (acc_cd!="--") {  // 사고운행
-				stsCd = "1";
-				abnormalCnt++;
-			} else { // 이상
-				stsCd = "2";
-				abnormalCnt++;
-			}
-			
-			if (document.getElementById("list"+targetItem.id) != null) {
-				prevEvtAcc = document.getElementById("list"+id).getAttribute("evtAcc");
-			}
-
-			realCarInfoList(targetItem, stsCd);
-
-			if (stsCd != "1") {  // 사고가 아닐때만
-				if (x > west && x < east) {
-					if ( y > south && y < north) {
-
-						var geoText = '{"type": "Feature","geometry": {"type": "Point","coordinates": [' + x + ', ' + y + ']},"properties": {"type": "' + stsCd + '", "angle": "' + angle + '", "carRegNo": "' + targetItem.carRegNo + '", "eventDt": "' + event_dt + '", "id": "' + id + '", "org": "' + targetItem.org + '"}}';
-
-						try {
-							geojson = JSON.parse(geoText);
-						} catch (e) {
-							if (e instanceof SyntaxError) {
-								
-							}
-						}
-
-						var markers = tsmap.geoJson(geojson, {
-							pointToLayer: defineFeature,
-							onEachFeature: function(feature, layer) {
-								var type = feature.properties.type;
-								var carRegNo = feature.properties.carRegNo;
-								var eventDt = feature.properties.eventDt;
-								var id = feature.properties.id;
-								var contents = '';
-								
-							    if (type=="3"){  // 정상운행
-							    	contents = '<div class="tooltipbox1 type03">(정상)'+carRegNo+'</div>';
-							    } else if (type=="2") {  //이상운행
-							    	contents = '<div class="tooltipbox1 type02">(이상)'+carRegNo+'<br />'+eventDt+'</div>';
-							    }
-
-								layer.bindPopup(contents, {
-									offset: tsmap.point(1, -2),
-									closeOnClick: false,
-									autoClose: false,
-									autoPan: false
-								}).on('click', function (e) {
-									markerClick(id,e);
-								});
-
-							    layerGroup[layerGroup.length]=layer;
-							}
-						});
-
-						if (map.getZoom() > 17) {
-							markers.addTo(map);
-						} else {
-							if (x > 0 && y > 0) {
-								cluster.addLayer(markers);
-							}
-						}
-						markerGroup[markerGroup.length] = markers;
-					}
-				}
-			}
-
-			if (currSelectCarId != "") {   //하단 실시간위치 표시
-				if (routeMarkerGroup != null && routeMarkerGroup.length == 0) { // 경로보기 상태가 아닐 때만
-					if ( id == currSelectCarId ) {
-						var cur_trnsprtPlanNo = isUndefined(targetItem.trnsprtPlanNo);
-
-						if (!document.getElementById("list" + id).classList.contains( 'on' )) {
-							$(".mpop01 .mpopCont dl dd ul li").removeClass("on");
-							document.getElementById("list" + id).classList.add( 'on' );
-						}
-
-						if (currEvtAcc != prevEvtAcc) {  // 이상코드나 사고코드가 바뀌었을 경우 상세창 다시조회
-							currSelectCarId = "";
-							detlInfoSelect(id, 'N');
-						} else {
-							if (currTrnsprtPlanNo != cur_trnsprtPlanNo) {  // 운송계획번호가 바뀌었을 경우 다시조회
-								currSelectCarId = "";
-								detlInfoSelect(id, 'N');
-							}
-						}
-						
-						var matchDt = targetItem.infoOccDt.match(/(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d*)/)
-			    		
-			    		if (matchDt != null) {
-			    			if (parseInt(matchDt[2]) <= 12 ) {
-			    				document.getElementById("detl_occ_dt").innerHTML = isUndefined("20" + matchDt[1] + "/" + matchDt[2] + "/" + matchDt[3] + " " + matchDt[4] + ":" + matchDt[5] + ":" + matchDt[6]);
-			    			} else {
-			    				document.getElementById("detl_occ_dt").innerHTML = isUndefined(matchDt[1] + matchDt[2] + "/" + matchDt[3] + "/" + matchDt[4] + " " + matchDt[5] + ":" + matchDt[6] + ":" + matchDt[7]);
-			    			}
-			    		}
-						
-			    		document.getElementById("detl_y").innerHTML=isUndefined(y);
-			    		document.getElementById("detl_x").innerHTML=isUndefined(x);
-			    		document.getElementById("detl_speed").innerHTML=isUndefined(targetItem.spd);
-			    		document.getElementById("detl_onoff").innerHTML = '엔진상태: '+(targetItem.onOff==null?"":targetItem.onOff.toUpperCase());
-
-						if (x > 0 && y > 0) {
-							// 현재위치로 포커스 이동
-							map.setView(new tsmap.latLng(y, x), map.getZoom());
-							locErrorFlag = "1";
-						} else {
-							if (locErrorFlag == "1") {
-								alert("위치좌표가 유효하지 않습니다.");
-							}
-							locErrorFlag = "2";
-						}
-
-					}
-				}
-			}
-		}
-	}
-
-	// marker 팝업 여부 상태값 저장
-	var currPopSts = markerPopOnOff;
-
-	for (i=0, len = layerGroup.length; i< len;  i++) {
-
-		var hasLayerResult = map.hasLayer(layerGroup[i]);
-
-		if (hasLayerResult){
-			var tempId = layerGroup[i].feature.properties.id;
-			// var temp = new Map();
-
-			//현재 선택된 차량만 팝업을 노출한다.
-			if (currSelectCarId == tempId) {
-				layerGroup[i].openPopup();
-			}
-		}
-	}
-	
-	markerPopOnOff.forEach(function (item, key, mapObj) {
-		if(item.get("curr")== "N"){  // 데이터가 안그려져서 N으로 남아있으면 상태값 삭제
-			markerPopOnOff.delete(key);
-		}
-	});
-	
-	if ( alimCnt > 0 ) {
-		document.getElementById("btnAlim").innerHTML='<img src="'+contextPath+'/images/ico/ico_alimg01_on.png" /><span>'+alimCnt+'</span>';
-	} else {
-		document.getElementById("btnAlim").innerHTML='<img src="'+contextPath+'/images/ico/ico_alimg01.png" />';
-	}
-		if (accCnt < acCnt) {  // 사고차량 갯수가 늘었을 때
-			sirenPlay();
-		}
-//	}
-
-	sirenCnt = alimCnt;
-	accCnt = acCnt;
-    document.getElementById("abnormalSub").innerHTML="이상운행 ("+abnormalCnt+"대)";
-    document.getElementById("normalSub").innerHTML="정상운행 ("+normalCnt+"대)";
-	firstViewNoPopup="POPUPYES";
-}
 		
 /**
  * @name         : isUndefined

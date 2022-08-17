@@ -196,3 +196,20 @@ div.notify.po{background:#fffccc url(../ptsimages/bg/bg_po01.png) no-repeat 5px 
     width: 99vw;
     height: 92vh;
 }
+
+/* 2022.08.17 실시간 관제, 필터 셀렉트 */
+.rltmSelect {
+    border-radius: 30px;
+    width: 90%;
+    font-size: 14px;
+}
+.rltmSelect input[type="text"] {
+    display: none;
+}
+.v-text-field--outlined > .v-input__control > .v-input__slot {
+    height: 35px;
+    min-height: 0px;
+}
+.v-text-field--enclosed .v-input__append-inner {
+    margin-top: 5px;
+}

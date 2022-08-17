@@ -52,15 +52,15 @@
             <th>운행 상태</th>
             <td>
               <div class="chkBox">
-                <input type="checkbox" id="chkStatus01" onClick="statusTotal(this);" />
+                <input type="checkbox" id="chkStatus01" ref="chkStatus01" @click="statusTotal($event);" />
                 <label for="chkStatus01">전체</label>
               </div>
               <div class="chkBox">
-                <input type="checkbox" id="chkStatus03" onClick="status(this);" checked />
+                <input type="checkbox" id="chkStatus03" ref="chkStatus03" @click="status($event);" checked />
                 <label for="chkStatus03">이상</label>
               </div>
               <div class="chkBox">
-                <input type="checkbox" id="chkStatus04" onClick="status(this);" />
+                <input type="checkbox" id="chkStatus04" ref="chkStatus04" @click="status($event);" />
                 <label for="chkStatus04">정상</label>
               </div>
             </td>
@@ -69,15 +69,15 @@
             <th>차량 상태</th>
             <td>	
               <div class="chkBox">
-                <input type="checkbox" id="carState01"  name="carState01" checked onClick="carStateTotal(this);" />
+                <input type="checkbox" id="carState01"  name="carState01" ref="carState01" checked @click="carStateTotal($event);" />
                 <label for="carState01">전체</label>
               </div>
               <div class="chkBox">
-                <input type="checkbox" id="carState02"  name="carState02" onClick="carState(this);"/>
+                <input type="checkbox" id="carState02"  name="carState02" ref="carState02" @click="carState($event);"/>
                 <label for="carState02">Online</label>
               </div>
               <div class="chkBox">
-                <input type="checkbox" id="carState03" name="carState03" onClick="carState(this);"/>
+                <input type="checkbox" id="carState03" name="carState03" ref="carState03" @click="carState($event);"/>
                 <label for="carState03">Offline</label>
               </div>
             </td>
@@ -86,15 +86,15 @@
             <th>사전운송계획</th>
             <td>
               <div class="chkBox">
-                <input type="checkbox" id="carPlan01"  name="carPlan01" checked onClick="carPlanTotal(this);"/>
+                <input type="checkbox" id="carPlan01"  name="carPlan01" ref="carPlan01" checked @click="carPlanTotal($event);"/>
                 <label for="carPlan01">전체</label>
               </div>
               <div class="chkBox">
-                <input type="checkbox" id="carPlan02"  name="carPlan02" onClick="carPlan(this);"/>
+                <input type="checkbox" id="carPlan02"  name="carPlan02" ref="carPlan02" @click="carPlan($event);"/>
                 <label for="carPlan02">등록</label>
               </div>
               <div class="chkBox">
-                <input type="checkbox" id="carPlan03" name="carPlan03" onClick="carPlan(this);"/>
+                <input type="checkbox" id="carPlan03" name="carPlan03" ref="carPlan03" @click="carPlan($event);"/>
                 <label for="carPlan03">미등록</label>
               </div>
             </td>
@@ -102,36 +102,36 @@
           <tr>
             <th>주무 부처</th>
             <td>
-              <v-select id="org" ref="org" v-model="orgResult" :items="orgList" item-text="name" item-value="value" outlined hide-details hide-input></v-select>
+              <v-select class="rltmSelect" id="org" ref="org" v-model="orgResult" :items="orgList" item-text="name" item-value="value" outlined hide-details></v-select>
             </td>
           </tr>
           <tr>
             <th>지역별</th>
             <td>
-              <select class="select" name="area" id="area"></select>
+              <v-select class="rltmSelect" id="area" ref="area" v-model="areaResult" :items="areaList" item-text="name" item-value="value" outlined hide-details @change="areaView"></v-select>
             </td>
           </tr>
           <tr>
             <th>물질 조회</th>
             <td>
               <div class="inpSearch">
-                <input type="text" class="inp01" id="matterName" style="width: calc( 90% )"/>
+                <input type="text" class="inp01" id="matterName" ref="matterName" style="width: calc( 90% )" />
               </div>
             </td>
           </tr>
           <tr>
             <th>적재량</th>
             <td>
-              <input type="text" class="inp01" id="quantityLow"  value="0" style='ime-mode:disabled;' numberOnly/>
+              <input type="text" class="inp01" id="quantityLow" ref="quantityLow" value="0" style='ime-mode:disabled;' numberOnly @keyup="chkrow()" />
               <span class="etxt">~</span>
-              <input type="text" class="inp01" id="quantityHigh" value="9999" style='ime-mode:disabled;' numberOnly/>
+              <input type="text" class="inp01" id="quantityHigh" ref="quantityHigh" value="9999" style='ime-mode:disabled;' numberOnly @keyup="chkhigh()" />
               <span class="etxt">kg</span>
             </td>
           </tr>
          </table>
 
         <div class="pbtnBox">
-          <a href="javascript:void(0)" class="btype01" id="filterReset">
+          <a href="javascript:void(0)" class="btype01" id="filterReset" @click="filterReset()">
             <img src="@/assets/ptsimages/ico/ico_refresh.png" />
             <span>초기화</span>
           </a>
@@ -504,8 +504,29 @@ export default {
     vlTunnelLayer: [],  // 장대터널
     vlTunnelData: '',  // 장대터널 데이터
     insttMarkers: L.layerGroup(),  // 대응기관 POI
-    orgResult: {name: '전체', value: '00'},
-    orgList: '',
+    orgResult: '',
+    orgList: [],  // 주무부처 리스트
+    areaResult: '',
+    areaList: [],  // 지역 리스트
+    areaCdList: [],  // 지역 코드 목록
+    sidoAreaPolygonGroup: [],
+    preReportAccNumber: 0,  //이전 사고신고 시퀀스 번호
+    markerGroup: [],
+    cluster: L.markerClusterGroup({
+      maxClusterRadius: 80,
+      iconCreateFunction: defineClusterIcon //this is where the magic happens
+    }),
+    accMarkerGroup: [],
+    markerPopOnOff: new Map(),  // marker 팝업 여부
+    carList: [],  // 차량리스트
+    currSelectCarId: '',
+    geojson: '',
+    layerGroup: [],
+    routeMarkerGroup: [],
+    locErrorFlag: '1',
+    sirenCnt: 0,
+    accCnt: 0,
+    firstViewNoPopup: 'NOPOPUP',
   }),
   setup() {},
   created() {},
@@ -513,6 +534,7 @@ export default {
     this.map = L.map('mapContainer', { center: this.latlng, zoom: 8, layers: [this.tiles]});
     L.control.scale().addTo(this.map);
     this.selectDgstOrgList();  // 주무부처 리스트 조회
+    this.selectAreaSidoList();  // 시도 리스트 조회
   },
   unmounted() {},
   beforeDestroy() {
@@ -790,7 +812,6 @@ export default {
       .then(response => {
         if(response != null) {
           var data = response.data;
-          console.log(data)
           var arr = [];
           var arrTotal = [];
           arr[0] = {name: "전체", value: "00"};
@@ -800,12 +821,500 @@ export default {
             arr[i+1]={name: item.cdDc, value: item.cdId};
             arrTotal.push(arr[i+1]);
           }
+          this.orgResult = arr[0];
           this.orgList = arrTotal;
         }
       })
       .catch(error => {
         console.log(error);
       })
+    },
+    // 시도 리스트 조회
+    selectAreaSidoList() {
+      axios('/cmmn/vueSelectAreaSidoList', {
+        data: {}
+      })
+      .then(response => {
+        if(response != null) {
+          var data = response.data;
+          this.areaCdList = data;
+          var arr = [];
+          var arrTotal = [];
+          arr[0] = {name: "전체", value: "00"};
+          arrTotal.push(arr[0]);
+          for (var i=0; i<data.length; i++) {
+            var item = data[i];
+            arr[i+1]={name: item.sidoNm, value: item.sidoCd};
+            arrTotal.push(arr[i+1]);
+          }
+          this.areaResult = arr[0];
+          this.areaList = arrTotal;
+        }
+        // 	// 지자체 권한 지역필터
+        // 	if (auth == "Z") {
+        // 		var areaDrop = $("#area").data("kendoDropDownList");
+        // 		areaDrop.select(function(dataItem) {
+        // 		    return dataItem.sidoCd === ldong;
+        // 		});
+        // 		$("#area").attr("disabled", true);
+        // 		areaDrop.enable(false);
+        // 		document.getElementById('area').onchange();
+        // 	} else {
+        // 		var areaDrop = $("#area").data("kendoDropDownList");
+        // 		areaDrop.select(0);
+        // 	}
+      })
+      .catch(error => {
+        console.log(error);
+      });
+    },
+    //필터 물질용량 검색범위 확인(최소값)
+    chkrow() {
+      this.$refs.quantityLow.value=this.$refs.quantityLow.value.replace(/[^0-9]/g,"");
+      var low = this.$refs.quantityLow.value;
+      var high = this.$refs.quantityHigh.value;
+      if (parseInt(low) > parseInt(high)) {
+        alert("최소값은 최대값보다 클 수 없습니다.");
+        this.$refs.quantityLow.value="0";
+        this.$refs.quantityHigh.value="9999";
+      }
+    },
+    //필터 물질용량 검색범위 확인(최대값)
+    chkhigh() {
+      this.$refs.quantityHigh.value=this.$refs.quantityHigh.value.replace(/[^0-9]/g,"");
+      var low = this.$refs.quantityLow.value;
+      var high = this.$refs.quantityHigh.value;
+      if (parseInt(low) > parseInt(high)) {
+        alert("최소값은 최대값보다 클 수 없습니다.");
+        this.$refs.quantityLow.value="0";
+        this.$refs.quantityHigh.value="9999";
+      }
+    },
+    // 필터링 조건 시/도 변경 이벤트 
+    areaView(a) {
+      // 시도 경계 초기화
+      for (var i=0, len=this.sidoAreaPolygonGroup.length; i<len; i++) {
+        this.map.removeLayer(this.sidoAreaPolygonGroup[i]);
+      }
+      this.sidoAreaPolygonGroup=[];
+      if (a == "00") {  // 전체
+        console.log("전체")
+      } else {
+        axios.get('/vc/vueSelectSidoArea', {
+          data: {},
+          params: {
+            sido_cd: a
+          }
+        })
+        .then(response => {
+          if(response != null) {
+            var data = response.data;
+            var polygon = L.geoJSON(data,{
+              style: function() {
+                return {
+                  weight: 3,
+                  opacity: 1,
+                  color: "red",
+                  dashArray:"5",
+                  fillOpacity:0.05
+                };
+              }
+            }).addTo(this.map);
+            this.sidoAreaPolygonGroup[this.sidoAreaPolygonGroup.length] = polygon;
+            this.map.fitBounds(polygon.getBounds());
+          }
+        })
+        .catch(error => {
+          console.log(error);
+        });
+      }
+    },
+    // 필터 초기화 버튼 클릭 시
+    filterReset() {
+      // 운행상태
+      this.$refs.chkStatus01.checked = true;
+      this.$refs.chkStatus03.checked = false;
+      this.$refs.chkStatus04.checked = false;
+      // 차량상태
+      this.$refs.carState01.checked = true;
+      this.$refs.carState02.checked = false;
+      this.$refs.carState03.checked = false;
+      // 사전운송계획
+      this.$refs.carPlan01.checked = true;
+      this.$refs.carPlan02.checked = false;
+      this.$refs.carPlan03.checked = false;
+
+      // 주무부처
+      this.$refs.org.value = '00';
+
+      // // 지자체 권한 지역필터
+      // if (auth == "Z") {
+      //   var areaDrop = $("#area").data("kendoDropDownList");
+      //   areaDrop.select(function(dataItem) {
+      //     return dataItem.sidoCd === ldong;
+      //   });
+      //   $("#area").attr("disabled", true);
+      //   areaDrop.enable(false);
+      //   document.getElementById('area').onchange();
+      // } else {
+      //   areaDrop.select(0);
+      // }
+        
+      // 시도 경계 초기화
+      for (var i=0, len= this.sidoAreaPolygonGroup.length; i<len; i++) {
+        this.map.removeLayer(this.sidoAreaPolygonGroup[i]);
+      }
+      this.$refs.area.value = '00';
+      this.sidoAreaPolygonGroup=[];
+
+      // 물질
+      this.$refs.matterName.value="";
+      // 적재량
+      this.$refs.quantityLow.value="0";
+      this.$refs.quantityHigh.value="9999";
+    },
+    // 필터 운행상태 전체선택
+    statusTotal(event){
+      if(event.target.checked == true) {
+        this.$refs.chkStatus03.checked = false;
+        this.$refs.chkStatus04.checked = false;
+      }
+    },
+    // 필터 운행상태 개별선택
+    status(event){
+      if(event.target.checked == true) {
+        this.$refs.chkStatus01.checked = false;
+      }
+    },
+    // 필터 차량상태 전체선택
+    carStateTotal(event){
+      if(event.target.checked == true) {
+        this.$refs.carState02.checked = false;
+        this.$refs.carState03.checked = false;
+      }
+    },
+    // 필터 차량상태 개별선택
+    carState(event){
+      if(event.target.checked == true) {
+        this.$refs.carState01.checked = false;
+      }
+    },
+    // 필터 사전운송계획 전체선택
+    carPlanTotal(event){
+      if (event.target.checked == true) {
+        this.$refs.carPlan02.checked = false;
+        this.$refs.carPlan03.checked = false;
+      }
+    },
+    // 필터 사전운송계획 개별선택
+    carPlan(event){
+      if ( event.target.checked == true ) {
+        this.$refs.carPlan01.checked = false;
+      }
+    },
+    // sseCall
+    sseCall(e) {
+      var orgResult      = JSON.parse(e.data);
+      var result         = orgResult.data;
+      var reportAccident = orgResult.reportAccident;
+      var carDataLen     = result.length;
+      var todLen         = orgResult.today.length;
+      var todayIng       = 0;
+      var todayEnd       = 0;
+      var todayCnt       = 0;
+
+      // 상단 오늘 내일 운송정보 표출
+      for (var i=0, len=todLen; i<len; i++) {
+        var temp = orgResult.today[i];
+        todayCnt += temp.cnt;
+        
+        if (temp.opratCd == "300" || temp.opratCd == "400") {
+          todayIng += temp.cnt;
+        } else if (temp.opratCd == "900") {
+          todayEnd += temp.cnt;
+        }
+      }
+
+      document.getElementById("todayIng").innerHTML = todayIng;	// 운송중
+      document.getElementById("todayEnd").innerHTML = todayEnd;	// 운송종료
+      document.getElementById("todayCnt").innerHTML = todayCnt;	// 운송계획
+      document.getElementById("tomorrowCnt").innerHTML = nvl(orgResult.tomorrow.cnt);
+
+      if (auth == "M" || auth == "S") {  // 관제요원 권한
+        // 사고신고 건수
+        document.getElementById("reportAccdintCnt").innerHTML = reportAccident.length;
+        // 함수 가져와서 this.추가하기
+        reportAccidentList(reportAccident);
+        
+        if (reportAccident.length > 0) {
+          if (this.preReportAccNumber < reportAccident[0].acdntSttemntSn) {
+            // 함수 가져와서 this.추가하기
+            sirenPlay();
+          }
+
+          this.preReportAccNumber = reportAccident[0].acdntSttemntSn;
+        }
+      }
+
+      var abnormalCnt = 0;	// 이상
+      var normalCnt = 0;	// 정상
+      var alimCnt = 0;	// 이상운행
+      var acCnt = 0;	// 사고
+
+      for (var m=0, len=this.markerGroup.length; m<len; m++) {  // 이상/정상 마커 제거
+        // 루프 톨면서 지우기
+        this.map.removeLayer(this.markerGroup[m]);
+        this.cluster.removeLayer(this.markerGroup[m]);
+      }
+	
+      for (var j=0, len=this.accMarkerGroup.length; j<len; j++) {  // 사고 마커 제거
+        this.map.removeLayer(this.accMarkerGroup[j]);
+      }
+	
+      markerGroup= [];
+      layerGroup = [];
+	
+      var east = this.map.getBounds().getEast();
+      var west = this.map.getBounds().getWest();
+      var north = this.map.getBounds().getNorth();
+      var south = this.map.getBounds().getSouth();
+	
+      this.map.addLayer(this.cluster);
+	
+      this.markerPopOnOff.forEach(function (item, key, mapObj) { // 조회 전 현재값 여부 N으로 초기화
+        item.set("curr", "N");
+      });
+
+      this.carList = result;  //차량리스트 정보를 전역변수에 담는다.
+
+      for (var k = 0; k<carDataLen; k++) {
+        var targetItem = result[k];
+
+        // 사고,이상 건수 카운팅
+        if (targetItem.evtType != "--" || targetItem.accCode != "--") { 
+          alimCnt++;
+          if (targetItem.accCode != "--") {
+            acCnt++;
+          }
+        }
+                      // 함수 가져와서 this.추가하기
+        var filterYn = carFiltering(targetItem);
+        
+        // 사고접수차량 별도 처리
+        for (var i = 0; i<reportAccident.length; i++) {
+          if (reportAccident[i].carRegNo == targetItem.carRegNo) {
+            filterYn = "N";
+            break;
+          }
+        }
+
+        if (filterYn=="Y") {  // 필터 여부
+          if (targetItem.id == this.currSelectCarId) {
+            this.currSelectCarId = "";
+            var ck = this.$el.querySelector('mpToggle').classList.contains('on');
+            if (!ck) { // 상세창 떠 있을 때
+              this.$el.querySelector('mpToggle').classList.add('on'); 
+              this.$el.querySelector('mpbCont mpbHeader').hide();
+            }
+          }
+          if (document.getElementById("list"+targetItem.id) != null) {
+            var child = document.getElementById("list"+targetItem.id);
+            child.classList.remove('on');
+            child.style.display="none";
+          }
+        } else {
+          var stsCd;
+          var id = targetItem.id;
+          var y;
+          var x;
+
+          if (targetItem.coord==undefined) {
+            y="0";
+            x="0";
+          } else {
+            y = targetItem.coord.y == "--" ? "0" : targetItem.coord.y;
+            x = targetItem.coord.x == "--" ? "0" : targetItem.coord.x;
+          }
+
+          var angle = parseInt(targetItem.az / 45) + 1;
+          // az가 360이 넘는 경우를 위한 처리
+          if (targetItem.az >= 360) {
+            angle = (parseInt(targetItem.az / 45) % 8) + 1;
+          }
+          
+          var prevEvtAcc = "default";
+          var evt_cd = targetItem.evtType == null ? "" : targetItem.evtType;
+          var acc_cd = targetItem.accCode == null ? "" : targetItem.accCode;
+          var currEvtAcc = evt_cd+acc_cd;
+          var evt_time = targetItem.evtTime;
+          var event_dt="";
+          if (evt_time != undefined){
+            if (evt_time.length > 10) {
+              event_dt = "20" + evt_time.substring(0,2) + "." + evt_time.substring(2,4) + "." + evt_time.substring(4,6) + " " + evt_time.substring(6,8) + ":" + evt_time.substring(8,10);
+            }
+          }
+
+          if ( x == "") x = "0";
+          if ( y == "") y = "0";
+          if ( x.substring(0, 1) == ".") x = "0";
+          if ( y.substring(0, 1) == ".") y = "0";
+          if (evt_cd == "--" && acc_cd == "--") { // 정상
+            stsCd = "3";
+            normalCnt++;
+          } else if (acc_cd!="--") {  // 사고운행
+            stsCd = "1";
+            abnormalCnt++;
+          } else { // 이상
+            stsCd = "2";
+            abnormalCnt++;
+          }
+          
+          if (document.getElementById("list"+targetItem.id) != null) {
+            prevEvtAcc = document.getElementById("list"+id).getAttribute("evtAcc");
+          }
+          // 함수 가져와서 this.추가하기
+          realCarInfoList(targetItem, stsCd);
+
+          if (stsCd != "1") {  // 사고가 아닐때만
+            if (x > west && x < east) {
+              if ( y > south && y < north) {
+
+                var geoText = '{"type": "Feature","geometry": {"type": "Point","coordinates": [' + x + ', ' + y + ']},"properties": {"type": "' + stsCd + '", "angle": "' + angle + '", "carRegNo": "' + targetItem.carRegNo + '", "eventDt": "' + event_dt + '", "id": "' + id + '", "org": "' + targetItem.org + '"}}';
+                try {
+                  this.geojson = JSON.parse(geoText);
+                } catch (e) {
+                  if (e instanceof SyntaxError) {
+                    
+                  }
+                }
+
+                var markers = L.geoJSON(geojson, {
+                  pointToLayer: defineFeature,
+                  onEachFeature: function(feature, layer) {
+                    var type = feature.properties.type;
+                    var carRegNo = feature.properties.carRegNo;
+                    var eventDt = feature.properties.eventDt;
+                    var id = feature.properties.id;
+                    var contents = '';
+                    
+                      if (type=="3"){  // 정상운행
+                        contents = '<div class="tooltipbox1 type03">(정상)'+carRegNo+'</div>';
+                      } else if (type=="2") {  //이상운행
+                        contents = '<div class="tooltipbox1 type02">(이상)'+carRegNo+'<br />'+eventDt+'</div>';
+                      }
+
+                    layer.bindPopup(contents, {
+                      offset: L.point(1, -2),
+                      closeOnClick: false,
+                      autoClose: false,
+                      autoPan: false
+                    }).on('click', function (e) {
+                      // 함수 가져와서 this.추가하기
+                      markerClick(id,e);
+                    });
+                    layerGroup[layerGroup.length]=layer;
+                  }
+                });
+
+                if (this.map.getZoom() > 17) {
+                  markers.addTo(this.map);
+                } else {
+                  if (x > 0 && y > 0) {
+                    this.cluster.addLayer(markers);
+                  }
+                }
+                markerGroup[markerGroup.length] = markers;
+              }
+            }
+          }
+
+          if (this.currSelectCarId != "") {   //하단 실시간위치 표시
+            if (this.routeMarkerGroup != null && this.routeMarkerGroup.length == 0) { // 경로보기 상태가 아닐 때만
+              if ( id == this.currSelectCarId ) {
+                                        // 함수 가져와서 this.추가하기
+                var cur_trnsprtPlanNo = isUndefined(targetItem.trnsprtPlanNo);
+
+                if (!document.getElementById("list" + id).classList.contains('on')) {
+                  this.$el.querySelector('mpop01 mpopCont dl dd ul li').classList.remove('on');
+                  document.getElementById("list" + id).classList.add('on');
+                }
+
+                if (currEvtAcc != prevEvtAcc) {  // 이상코드나 사고코드가 바뀌었을 경우 상세창 다시조회
+                  this.currSelectCarId = "";
+                  // 함수 가져와서 this.추가하기
+                  detlInfoSelect(id, 'N');
+                } else {
+                  if (currTrnsprtPlanNo != cur_trnsprtPlanNo) {  // 운송계획번호가 바뀌었을 경우 다시조회
+                    this.currSelectCarId = "";
+                    // 함수 가져와서 this.추가하기
+                    detlInfoSelect(id, 'N');
+                  }
+                }
+                
+                var matchDt = targetItem.infoOccDt.match(/(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d*)/)
+                  
+                  if (matchDt != null) {
+                    if (parseInt(matchDt[2]) <= 12 ) {
+                      document.getElementById("detl_occ_dt").innerHTML = isUndefined("20" + matchDt[1] + "/" + matchDt[2] + "/" + matchDt[3] + " " + matchDt[4] + ":" + matchDt[5] + ":" + matchDt[6]);
+                    } else {
+                      document.getElementById("detl_occ_dt").innerHTML = isUndefined(matchDt[1] + matchDt[2] + "/" + matchDt[3] + "/" + matchDt[4] + " " + matchDt[5] + ":" + matchDt[6] + ":" + matchDt[7]);
+                    }
+                  }
+                                                              // 함수 가져와서 this.추가하기
+                  document.getElementById("detl_y").innerHTML=isUndefined(y);
+                  document.getElementById("detl_x").innerHTML=isUndefined(x);
+                  document.getElementById("detl_speed").innerHTML=isUndefined(targetItem.spd);
+                  document.getElementById("detl_onoff").innerHTML = '엔진상태: '+(targetItem.onOff==null?"":targetItem.onOff.toUpperCase());
+
+                if (x > 0 && y > 0) {
+                  // 현재위치로 포커스 이동
+                  this.map.setView(new L.latLng(y, x), this.map.getZoom());
+                  this.locErrorFlag = "1";
+                } else {
+                  if (this.locErrorFlag == "1") {
+                    alert("위치좌표가 유효하지 않습니다.");
+                  }
+                  this.locErrorFlag = "2";
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // marker 팝업 여부 상태값 저장
+      for (i=0, len=this.layerGroup.length; i< len;  i++) {
+        var hasLayerResult = this.map.hasLayer(this.layerGroup[i]);
+        if (hasLayerResult){
+          var tempId = this.layerGroup[i].feature.properties.id;
+          //현재 선택된 차량만 팝업을 노출한다.
+          if (this.currSelectCarId == tempId) {
+            this.layerGroup[i].openPopup();
+          }
+        }
+      }
+	
+      this.markerPopOnOff.forEach(function (item, key, mapObj) {
+        if(item.get("curr")== "N"){  // 데이터가 안그려져서 N으로 남아있으면 상태값 삭제
+          this.markerPopOnOff.delete(key);
+        }
+      });
+	
+      if (alimCnt > 0) {
+        document.getElementById("btnAlim").innerHTML='<img src="'+contextPath+'/images/ico/ico_alimg01_on.png" /><span>'+alimCnt+'</span>';
+      } else {
+        document.getElementById("btnAlim").innerHTML='<img src="'+contextPath+'/images/ico/ico_alimg01.png" />';
+      }
+      if (this.accCnt < acCnt) {  // 사고차량 갯수가 늘었을 때
+        // 함수 가져와서 this.추가하기
+        sirenPlay();
+      }
+
+      this.sirenCnt = alimCnt;
+      this.accCnt = acCnt;
+        document.getElementById("abnormalSub").innerHTML="이상운행 ("+abnormalCnt+"대)";
+        document.getElementById("normalSub").innerHTML="정상운행 ("+normalCnt+"대)";
+      this.firstViewNoPopup="POPUPYES";
     },
     // 지도 줌 확대
     zoomPlus() {
