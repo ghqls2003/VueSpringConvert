@@ -42,6 +42,12 @@
           실시간관제
         </v-btn>
       </router-link>
+      
+      <router-link to="/marinemap" class="rlink">
+        <v-btn class="vbtn" color="lime lighten-4">
+          해양맵테스트
+        </v-btn>
+      </router-link>
 
       <router-link to="/colorpicker" class="rlink">
         <v-btn class="vbtn" color="lime lighten-4">

@@ -213,3 +213,6 @@ div.notify.po{background:#fffccc url(../ptsimages/bg/bg_po01.png) no-repeat 5px 
 .v-text-field--enclosed .v-input__append-inner {
     margin-top: 5px;
 }
+.v-application ul {
+    padding-left: 0px;
+}

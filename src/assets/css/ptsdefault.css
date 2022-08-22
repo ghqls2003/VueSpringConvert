@@ -401,7 +401,7 @@ div.k-treeview.treeCont{padding:20px;width:calc( 100% - 2px );border:1px solid #
 .mpop01 .mpopCont dl{width:100%;height:auto;overflow:hidden;}
 .mpop01 .mpopCont dl dt{cursor:pointer;font-size:15px;color:#000;width:100%;padding-left:20px;height:46px;line-height:46px;border-bottom:1px solid #e5e5e5;overflow:hidden;background:url(../ptsimages/bg/bg_up01.png) no-repeat 195px center;background-size:30px 30px;}
 .mpop01 .mpopCont dl dt.on{background:url(../ptsimages/bg/bg_down01.png) no-repeat 195px center;background-size:30px 30px;}
-.mpop01 .mpopCont dl dd{width:calc( 100% - 40px );padding:10px 20px;height:auto;overflow:hidden;}
+.mpop01 .mpopCont dl dd{padding:10px 20px;height:auto;overflow:hidden;}
 .mpop01 .mpopCont dl dd ul{width:100%;height:auto;overflow:hidden;}
 .mpop01 .mpopCont dl dd ul li{width:100%;height:35px;border-radius:18px;overflow:hidden;margin-top:5px;}
 .mpop01 .mpopCont dl dd ul li.sts01{background:#d71826;}
@@ -778,7 +778,7 @@ center;font-size:14px;color:#000;line-height:75px;padding-left:50px;}
 .mpSideList a.allMsgBtn.on{background:url(../ptsimages/ico/ico_mpsideList05_on.png) no-repeat left top; width:40px; height:40px;}
 
 /* 0524 */
-.box{width:100%; height:100%; position:relative}
+.box{width:100%; height:100%; position:relative;}
 
 /*190527*/
 .mtrl_gsn_inp{border-radius: 17px 0px 0px 17px; width: 17px; height:33px !important; border-right: 0 !important; padding-right: 0 !important; text-align: right;}

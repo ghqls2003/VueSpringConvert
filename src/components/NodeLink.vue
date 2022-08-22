@@ -107,8 +107,10 @@ export default {
   },
   data: () =>({
     map: null,
-    tiles: L.tileLayer('http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',{ minZoom: 8, maxZoom: 18, subdomains:['mt0','mt1','mt2','mt3']}),
-    bsUrl: 'http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+    tiles: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{ minZoom: 8, maxZoom: 18}),  // leaflet 원본
+    // tiles: L.tileLayer('http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',{ minZoom: 8, maxZoom: 18, subdomains:['mt0','mt1','mt2','mt3']}),
+    bsUrl: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    // bsUrl: 'http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
     sateUrl: 'http://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}',
     latlng: L.latLng(36.176267, 127.276912),
     timeStamp: '',  // 실시간
@@ -202,8 +204,8 @@ export default {
 				event.target.classList.remove('on');
         if(this.tiles._url == this.sateUrl){
           this.map.removeLayer(this.tiles);
-          // this.tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{ minZoom: 8, maxZoom: 18})   leaflet 원본
-          this.tiles = L.tileLayer('http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',{ minZoom: 8, maxZoom: 18, subdomains:['mt0','mt1','mt2','mt3']})
+          this.tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{ minZoom: 8, maxZoom: 18})  // leaflet 원본
+          // this.tiles = L.tileLayer('http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',{ minZoom: 8, maxZoom: 18, subdomains:['mt0','mt1','mt2','mt3']})
           this.map.addLayer(this.tiles);
         }
 			} else {

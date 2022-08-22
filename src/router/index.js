@@ -29,6 +29,11 @@ const routes = [
     component: () => import(/* webpackChunkName: "nodelink" */ '../views/RltmCntrlView.vue')
   },
   {
+    path: '/marinemap',
+    name: 'marinemap',
+    component: () => import(/* webpackChunkName: "nodelink" */ '../views/MarineMapView.vue')
+  },
+  {
     path: '/colorpicker',
     name: 'colorpicker',
     component: () => import(/* webpackChunkName: "color" */ '../views/ColorPickerView.vue')

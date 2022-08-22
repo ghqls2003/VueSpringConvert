@@ -13,22 +13,11 @@ var acdExitMthdCdList = [];	// 사고 해제 상태 코드 목록
 
 var regltZonePolygonGroup = [];
 var lmttZonePolygonGroup  = [];
-var toggleFlag = "";
 var situFlag = "";
 var filterFlag = "";
-var accidentState = [];
-var map = '';
-var	accMarkerGroup = [];
-var	currTrnsprtPlanNo = "";
 var	routePolyline = "";
 var	accChangeFlg = "";
-var	bounceTarget = "";
 
-var	rmax = 35; //Maximum radius for cluster pies
-
-var metadata = JSON.parse('{"fields": {"type": {"lookup": {"1": "사고", "2": "이상", "3": "정상"}}}}');
-var	categoryField = 'type'; //This is the fieldname for marker category (used in the pie and legend)
-var	auth = '';
 var	ldong = '';
 var	flag = "1";  // test 용 flag
 
@@ -36,8 +25,6 @@ var heatLayer = new tsmap.heatLayer();
 var poplTnLayer;
 
 var secondLoginHost = "/";
-
-var eventSource = new EventSource(contextPath + "/vc/selectRealTimeCarInfo");
 
 $(function() {
 	var seLogin = getAuth2();
@@ -59,25 +46,8 @@ function onInit() {
 	auth = getAuth();
 	ldong = getLdong();
 
-	if (auth == "M" || auth == "S") {    // 관제요원 권한
-		$("#reportAccident").hide();     // 사고신고
-		$("#reportAccidentList").show(); // 사고접수현황
-		$("#allMsgBtn").show();          // 단말 전체푸시
-	} else {
-		// $("#regltZoneBtn").hide();    // 단속지역
-		$("#trmnlNotice").hide();        // 단말기 알림
-		$("#driverCall").hide();         // 운전자통화
-		$("#orgSpread").hide();          // 관계기관전파
-		$("#regitAccident").hide();      // 사고전환
-		$("#situationEnd").hide();       // 상황종료
-		$("#allMsgBtn").hide();          // 단말 전체푸시
-	}
-
 	$(".mpbCont, .mpbHeader").hide();
 
-	// 실시간 조회 이벤트 등록(SSE 호출)
-	//sseCall();
-    
 	//검색필터에서 사용할 목록 조회
 	selectExitCdList();   // 상황해제코드 목록 조회
 
@@ -1224,396 +1194,6 @@ function onInit() {
 }
 
 /**
- * @description  : 실시간 이동 차량 데이터 표출
- */
-var realCarInfoList = function(item, stsCd) {
-	var evt_cd = item.evtType==null?"":item.evtType;
-	var acc_cd = item.accCode==null?"":item.accCode;
-	var currEvtAcc = evt_cd+acc_cd;
-	var classOnOff = item.onOff==null?"":item.onOff.toLowerCase();
-	var attrOnOff = item.onOff==null?"":item.onOff.toUpperCase();
-
-	var normal = document.getElementById("normalCarList");
-	var abnormal = document.getElementById("abnormalCarList");
-	var acc = document.getElementById("accCarList");
-	var addStr = "";
-
-	var extElem = null;
-	var idStr = item.id.match(/[A-z0-9]+/);
-
-	if (idStr == null) {
-		return false;
-	}
-
-	extElem = document.getElementById("list" + idStr.toString());
-
-	if (extElem == null) {
-
-		addStr += "<li id='list"+idStr+"' class='sts0"+stsCd+"' onClick=\"detlInfoSelect(\'"+idStr+"\', \'N\');\" style='cursor:pointer' evtAcc='"+currEvtAcc+"' onOff='"+attrOnOff+"'>";
-		addStr += "<span>"+item.carRegNo+"</span>";
-		addStr += "<div class='btn'>";
-
-		if (auth == "M" || auth == "S" ) {  // 관리자 및 관제요원 권한
-		 	 addStr += "<a href='javascript:void(0)' class='"+classOnOff+"' onClick=\"messageMiniBtn(event, \'"+idStr+"\');\">";
-		} else {
-			addStr += "<a href='javascript:void(0)' class='"+classOnOff+"' >";
-		}
-
-		addStr += "<img src='"+contextPath+"/images/ico/ico_sns01.png' />";
-		addStr += "</a>";
-
-		if(auth == "M" || auth == "S") {  // 관리자 및 관제요원 권한
-			addStr += "<a href='javascript:void(0)' class='" + classOnOff + "' onClick=\"callMiniBtn(event, \'" + idStr + "\', \'" + item.carRegNo + "\', \'" + item.trnsprtPlanNo + "\');\">";
-		}else{
-			addStr += "<a href='javascript:void(0)' class='"+classOnOff+"' >";
-		}
-
-		addStr += "<img src='"+contextPath+"/images/ico/ico_sns02.png' />";
-		addStr += "</a>";
-		addStr += "</div>";
-		addStr += "</li>";
-
-		if (stsCd=="3") {
-			normal.insertAdjacentHTML('afterbegin',addStr);
-		} else if (stsCd=="2") { //이상
-			abnormal.insertAdjacentHTML('afterbegin',addStr);
-		} else {  //사고
-			acc.insertAdjacentHTML('afterbegin',addStr);
-		}
-	} else if (extElem.getAttribute("evtAcc") != currEvtAcc) { // 이상/사고/정상 상태가 바뀌었을 때
-		extElem.parentNode.removeChild(extElem);
-
-		addStr = "<li id='list"+ idStr +"' class='sts0"+stsCd+"' onClick=\"detlInfoSelect(\'"+ idStr +"\', \'N\');\" style='cursor:pointer' evtAcc='"+currEvtAcc+"' onOff='"+attrOnOff+"'>" +
-			"<span>"+item.carRegNo+"</span>" +
-			"<div class='btn'>" +
-			"<a href='javascript:void(0)' class='"+classOnOff+"' onClick=\"messageMiniBtn(event, \'"+ idStr +"\');\">" +
-			"<img src='"+contextPath+"/images/ico/ico_sns01.png' />" +
-			"</a>" +
-			"<a href='javascript:void(0)' class='"+classOnOff+"' onClick=\"callMiniBtn(event, \'"+ idStr+"\', \'"+item.carRegNo+"\', \'"+item.trnsprtPlanNo+"\');\">" +
-			"<img src='"+contextPath+"/images/ico/ico_sns02.png' />" +
-			"</a>" +
-			"</div>" +
-			"</li>";
-		if (stsCd=="3") {
-			normal.insertAdjacentHTML('afterbegin',addStr);
-		} else if (stsCd=="2") { //이상
-			abnormal.insertAdjacentHTML('afterbegin',addStr);
-		} else {  //사고
-			acc.insertAdjacentHTML('afterbegin',addStr);
-		}
-	} else {
-		extElem.style.display="block";
-
-		if (extElem.getAttribute("onOff") != attrOnOff) {  // on/off 상태가 바뀌었을 때
-			var nm = extElem.getElementsByTagName("div");
-			var first = nm[0].getElementsByTagName("a")[0];
-			var second = nm[0].getElementsByTagName("a")[1];
-
-			first.classList.remove('on');
-			first.classList.remove('off');
-			second.classList.remove('on');
-			second.classList.remove('off');
-			first.classList.add(classOnOff);
-			second.classList.add(classOnOff);
-			extElem.setAttribute("onOff", attrOnOff);
-		}
-	}
-}
-
-/**
- * @description  : 실시간 차량 정보 필터링
- */
-var carFiltering = function(item) {
-
-	var delYn = "N";
-	var accYn = 'N';
-	var accIndex;
-	var accLen =  accidentState.length;
-
-	for (var i = 0, len= accLen; i<len; i++){   // 이미 사고로 저장되어 있는지 확인
-		if (accidentState[i] == item.id){
-			accYn = 'Y';
-			accIndex = i;
-		}
-	}
-
-	// 사고 발생 시 초점 이동
-	if (item.accCode != '--') {
-		var evt_time = item.evtTime;
-		var event_dt="";
-		if (evt_time!=undefined){
-			if (evt_time.length >10) {
-				event_dt = "20"+evt_time.substring(0,2)+"."+evt_time.substring(2,4)+"."+evt_time.substring(4,6)+" "+evt_time.substring(6,8)+":"+evt_time.substring(8,10);
-			}
-		}
-		var contents = '<div class="tooltipbox1 type01">(사고)'+item.carRegNo+'<br />'+event_dt+'</div>';
-
-		var angle = parseInt(item.az / 45)+1;
-		
-		// az가 360이 넘는 경우를 위한 처리
-		if (item.az >= 360) {
-			angle = (parseInt(item.az / 45) % 8) + 1;
-		}
-		
-		var accIcon = tsmap.icon({  // 사고
-			iconUrl: contextPath+'/images/ico/red'+getOrgImgIcon(item.org)+'_'+angle+'.png',
-			iconSize:   [55, 55]
-		});
-
-		var xx = item.coord.x=="--"?"0":item.coord.x;
-		var yy = item.coord.y=="--"?"0":item.coord.y;
-		
-		if (xx > 0 && yy > 0) {
-			var marker = tsmap.marker(new tsmap.latLng(yy, xx), {
-				icon: accIcon,
-				keyboard: false
-			}).bindPopup(contents, {
-				closeOnClick: false,
-				autoClose: false,
-				autoPan: false
-			}).addTo(map).on('click', function (e) {
-				markerClick(item.id, e);
-			});	//지도에 마커 추가
-			var marker2 = tsmap.marker(new tsmap.latLng(127.541242, 36.451632), {
-				icon: accIcon,
-				keyboard: false
-			}).bindPopup(contents, {
-				closeOnClick: false,
-				autoClose: false,
-				autoPan: false
-			}).addTo(map).on('click', function (e) {
-				markerClick(item.id, e);
-			});	//지도에 마커 추가
-
-			// marker 팝업 여부 상태값 저장
-			var tempId = item.id;
-
-			//현재 선택된 차량만 팝업을 노출한다.
-			if(currSelectCarId == tempId) {
-				marker.openPopup();
-			}
-
-			accMarkerGroup[accMarkerGroup.length] = marker;
-			accMarkerGroup[accMarkerGroup.length] = marker2;
-		}
-
-		if ( accYn == 'N') {  // 사고 상태로 저장되어 있지 않은 것만
-			if (xx > 0 && yy > 0) {
-				locErrorFlag = "1";
-				map.setView(new tsmap.latLng(yy, xx), 15);
-			} else {
-				if(locErrorFlag == "1") {
-					alert("위치좌표가 유효하지 않습니다.");
-				}
-				
-				locErrorFlag = "2";
-			}
-
-			accidentState[accidentState.length] = item.id;
-			currSelectCarId = "";
-
-			if (firstViewNoPopup == "NOPOPUP") {  // 화면 진입 시 이미 사고인 차량은 사고팝업 안띄움
-				detlInfoSelect(item.id, 'N');
-			} else {
-				detlInfoSelect(item.id, 'Y');
-			}
-
-			var ck = $(".mpToggle").hasClass("on");
-			if(ck){
-				$(".mpToggle").removeClass("on");
-				$(".mpbCont, .mpbHeader").show();
-			}
-		}
-
-		if (currSelectCarId != "") {   // 현재 선택된 차량
-			if (routeMarkerGroup != null && routeMarkerGroup.length == 0) { // 경로보기 상태가 아닐 때만
-				if ( item.id == currSelectCarId ) {
-					if (locErrorFlag == "1") {		// 좌표값이 정상이 아니면
-						marker.setZIndexOffset(1000);
-						
-						if (bounceTarget != item.id) {
-							marker.setBouncingOptions({
-								bounceHeight: 20,    // height of the bouncing
-								bounceSpeed: 90,    // bouncing speed coefficient
-								exclusive: true,  // if this marker bouncing all others must stop
-							}).bounce(2);
-							bounceTarget = item.id;
-						}
-					}
-				}
-			}
-		}
-	} else {
-		if (accYn == 'Y') {  // 사고났다가 정상으로 바뀌었을 때 배열에서 제거, 마커 제거
-			accidentState.splice(accIndex, 1);
-		}
-	}
-	
-	// 운행상태
-	if ( document.getElementById("chkStatus01").checked ) {  //전체
-	} else if (document.getElementById("chkStatus03").checked && document.getElementById("chkStatus04").checked) {  //이상,정상 선택(전체)
-	} else {  //전체는 아닐경우
-		if (item.accCode == "--" && item.evtType == "--") {  // 정상
-			if (!document.getElementById("chkStatus04").checked){
-				return "Y"
-			}
-		} else {  // 이상
-			if (!document.getElementById("chkStatus03").checked) {
-				return "Y"
-			}
-		}
-	}
-
-	// 차량상태
-	if (document.getElementById("carState01").checked) {  //전체
-	} else if (document.getElementById("carState02").checked && document.getElementById("carState03").checked) {  //온라인,오프라인 선택(전체)
-		if (item.onOff!=null) {
-			if (item.onOff.toUpperCase() != "OFF" && item.onOff.toUpperCase() != "ON") {
-				return "Y"
-			}
-		} else {
-			return "Y"
-		}
-	} else if (document.getElementById("carState02").checked && !document.getElementById("carState03").checked) {  //온라인만 선택
-		if (item.onOff!=null) {
-			if (item.onOff.toUpperCase() != "ON") {
-				return "Y"
-			}
-		} else {
-			return "Y"
-		}
-	} else if (!document.getElementById("carState02").checked && document.getElementById("carState03").checked) {  //오프라인만 선택
-		if (item.onOff!=null) {
-			if (item.onOff.toUpperCase() != "OFF") {
-				return "Y"
-			}
-		} else {
-			return "Y"
-		}
-	} else {
-		return "Y"
-	}
-
-	// 사전운송계획
-	if (document.getElementById("carPlan01").checked) {  //전체
-	} else if (document.getElementById("carPlan02").checked && document.getElementById("carPlan03").checked) {  //등록,미등록 선택(전체)
-		if (item.planYn!=null) {
-			if (item.planYn.toUpperCase() != "Y" && item.planYn.toUpperCase() != "N") {
-				return "Y"
-			}
-		} else {
-			return "Y"
-		}
-	} else if (document.getElementById("carPlan02").checked && !document.getElementById("carPlan03").checked) {  //등록만 선택
-		if (item.planYn!=null) {
-			if (item.planYn.toUpperCase() != "Y") {
-				return "Y"
-			}
-		} else {
-			return "Y"
-		}
-	} else if (!document.getElementById("carPlan02").checked && document.getElementById("carPlan03").checked) {  //미등록만 선택
-		if (item.planYn!=null) {
-			if (item.planYn.toUpperCase() != "N") {
-				return "Y"
-			}
-		} else {
-			return "Y"
-		}
-	} else {
-		return "Y"
-	}
-
-	// 주무 부처
-	if (document.getElementById("org").value == "00") { // 전체
-	} else {
-		// 청약정보에 따른 부처 선택
-		var mttrty = nvl(item.mttrty);
-		
-		if (mttrty == "" || mttrty == "--" || mttrty != $("#org option:selected").val()) {
-			return "Y"
-		} else {
-			console.log("NO : " + item.carRegNo + ", Mttr : " + item.mttrty);
-		}
-	}
-
-	// 지역별
-	if (document.getElementById("area").value == "00") { // 전체
-	} else {
-		if (item.area != document.getElementById("area").value){
-			return "Y"
-		}
-	}
-
-	// 물질명
-	if (document.getElementById("matterName").value == "") { // 전체
-	} else {
-		var matFlag = 0;
-		if (item.matterInfo != null) {
-			for (var k=0, len=item.matterInfo.length; i<len; i++){
-				if (item.matterInfo[k].name != null) {
-					if (item.matterInfo[k].name.indexOf(document.getElementById("matterName").value) != -1){
-						matFlag++;
-					}
-				}
-			}
-			if ( matFlag == 0) {
-				return "Y"
-			}
-		} else {
-			return "Y"
-		}
-	}
-
-	//적재량
-	var quantity = item.quantity;
-
-	if (quantity == null) {
-		quantity = "--";
-	}
-
-	if (quantity != null) {
-		if (document.getElementById("quantityLow").value == "0" && document.getElementById("quantityHigh").value == "9999") { //전체
-		} else if (!document.getElementById("quantityLow").value == "" && document.getElementById("quantityHigh").value == "") { //최저값만 있을때
-			if (quantity < document.getElementById("quantityLow").value){
-				return "Y"
-			}
-		} else if (document.getElementById("quantityLow").value == "" && !document.getElementById("quantityHigh").value == "") { //최대값만 있을때
-			if (quantity > document.getElementById("quantityHigh").value){
-				return "Y"
-			}
-		} else if (!document.getElementById("quantityLow").value == "" && !document.getElementById("quantityHigh").value == "") { //둘다 있을때
-			if (quantity < document.getElementById("quantityLow").value || quantity > document.getElementById("quantityHigh").value){
-				return "Y"
-			}
-		}
-	}
-
-	// 상세검색
-	if(document.getElementById("detlSearch").value != ""){
-		var tmpFlag = 0;
-		if(item.carRegNo.indexOf(document.getElementById("detlSearch").value) == -1) {
-			if (item.matterInfo != null) {
-				for (var j=0, len=item.matterInfo.length; j<len; j++){
-					if (item.matterInfo[j].name != null) {
-						if (item.matterInfo[j].name.indexOf(document.getElementById("detlSearch").value) != -1){
-							tmpFlag++;
-						}
-					}
-				}
-				if ( tmpFlag == 0) {
-					return "Y"
-				}
-			} else {
-				return "Y"
-			}
-		}
-	}
-	
-	return delYn;
-}
-
-/**
  * @name         : selectExitCdList
  * @description  : 상황해제코드 다중 목록 조회
  * @date         : 2020. 03. 20.
@@ -1680,300 +1260,6 @@ allPopupClose = function(data) {
 		$("#bangjaePop").data("kendoDialog").close();
 	}
 }
-
-/**
- * @name         : detlInfoSelect
- * @description  : 하단 개별차량 상세정보를 조회 및 표출한다.
- * @date         : 2018. 09. 19.
- * @author	     : kbm
- */
-function detlInfoSelect(id, acdntYn){
-
-	if ( id == currSelectCarId ) {
-		currSelectCarId = "";
-        bounceTarget = "";		// 바운스 타겟 제거
-	} else {
-		currSelectCarId = id;
-	
-		var arg = {};
-		arg.id = id;
-		
-		ajax(true, contextPath+'/vc/selectMongoById', 'body', '조회중입니다.', arg, function (data) {
-
-			var result = data;
-			var evt_time = result.evtTime;
-			var event_dt="";
-
-			if (evt_time!=undefined){
-				if (evt_time.length >10) {
-					event_dt = "20" + evt_time.substring(0,2)+"."+evt_time.substring(2,4)+"."+evt_time.substring(4,6)+" "+evt_time.substring(6,8)+":"+evt_time.substring(8,10);
-				}
-			}
-
-			arg.car_reg_no = result.carRegNo;
-			document.getElementById("orgSpread").setAttribute("vin", isUndefined(result.id));
-			document.getElementById("orgSpread").setAttribute("car_reg_no", isUndefined(result.carRegNo));
-			document.getElementById("orgSpread").setAttribute("plan_yn", result.planYn==null?"":result.planYn.toUpperCase());
-			document.getElementById("orgSpread").setAttribute("on_off", result.onOff==null?"":result.onOff.toUpperCase());
-			document.getElementById("regitAccident").setAttribute("acc_code", result.accCode);
-			document.getElementById("regitAccident").setAttribute("evt_type", result.evtType);
-			document.getElementById("regitAccident").setAttribute("event_dt", '20' + evt_time.substring(0, 12));
-			document.getElementById("detl_speed").innerHTML = isUndefined(result.spd);
-			document.getElementById("detl_onoff").innerHTML = '엔진상태: '+(result.onOff==null?"":result.onOff.toUpperCase());
-			document.getElementById("orgSpread").setAttribute("area", result.area);
-
-			currTrnsprtPlanNo = isUndefined(result.trnsprtPlanNo);
-			
-			var tr_plan_no = isUndefined(result.trnsprtPlanNo);
-
-			if (tr_plan_no != "" && tr_plan_no != "--") {
-				document.getElementById("detlPlanNo").innerHTML = tr_plan_no;
-			} else {
-				document.getElementById("detlPlanNo").innerHTML = "미등록";
-			}
-			
-			if (result.accCode=="--" && result.evtType=="--") {  // 정상일때
-				document.getElementById("abnormalDetl").innerHTML="없음";
-			} else {
-				document.getElementById("abnormalDetl").innerHTML=(result.abnormalInfo==null?"코드없음":result.abnormalInfo)+(result.evtTime==null?"":" ("+event_dt+")");
-			}
-			
-			if (auth == "M") {
-				if (result.accCode=="--" && result.evtType=="--") {  // 정상일때
-					$("#situationEnd").hide();
-				} else {
-					$("#situationEnd").show();
-				}
-			}
-
-			var rsltX = result.coord.x;
-			var rsltY = result.coord.y;
-			
-			if (!isNaN(rsltX) && !isNaN(rsltY)) {
-				if (rsltX > 0 && rsltY > 0) {
-					vcCoord2Addr(rsltX, rsltY);		// 좌표기반 주소 가져오기
-					map.setView(new tsmap.latLng(rsltY, rsltX), 18); // 현재위치로 포커스 이동
-					locErrorFlag = "1";
-				} else {
-					if(locErrorFlag=="1") {
-						alert("위치좌표가 유효하지 않습니다.");
-					}
-					locErrorFlag = "2";
-				}
-			}
-			
-			arg.vin = isUndefined(result.id);
-			arg.trnsprt_plan_no = tr_plan_no;
-
-			ajax(true, contextPath+'/vc/selectDetlInfo', 'body', '조회중입니다.', arg, function (data) {
-
-		    	if (data != null) {
-
-		 			var ck = $(".mpToggle").hasClass("on");
-
-					if(ck){ 
-						$(".mpToggle").removeClass("on"); 
-						$(".mpbCont, .mpbHeader").show();
-					}
-		    		
-					//사업자등록정보
-		    		document.getElementById("orgSpread").setAttribute("bizrno", data.bizrno);
-
-					// 차량정보
-		    		var detl_car = data.carInfo;
-		    		document.getElementById("detl_car_reg_no").innerHTML=isUndefined(result.carRegNo);
-
-		    		if (detl_car != null){
-			    		document.getElementById("detl_vhcty").innerHTML=isUndefined(detl_car.vhcty);
-			    		document.getElementById("detl_yridnw").innerHTML=isUndefined(detl_car.yridnw)+"년식, "+isUndefined(detl_car.div);
-			    		document.getElementById("detl_brwdnm").innerHTML=isUndefined(detl_car.brwdnm);
-			    		document.getElementById("detl_cmpny_nm").innerHTML=isUndefined(detl_car.cmpnyNm);
-		    		} else {
-			    		document.getElementById("detl_vhcty").innerHTML="";
-			    		document.getElementById("detl_yridnw").innerHTML="";
-			    		document.getElementById("detl_brwdnm").innerHTML="";
-			    		document.getElementById("detl_cmpny_nm").innerHTML="";
-		    		}
-
-		    		document.getElementById("detl_id").innerHTML=isUndefined(result.id);
-		    		
-		    		// 단말기정보
-		    		var detl_trmnl = data.trmnlInfo;
-		    		if (detl_trmnl!=null){
-			    		document.getElementById("detl_telecomCd").innerHTML=isUndefined(detl_trmnl.telecomCd);
-			    		document.getElementById("detl_trmnlNo").innerHTML=isUndefined(detl_trmnl.trmnlNo);
-			    		document.getElementById("detl_makr").innerHTML=isUndefined(detl_trmnl.trmnlMakr);
-			    		document.getElementById("detl_model").innerHTML=isUndefined(detl_trmnl.trmnlModelNm);
-		    		} else {
-			    		document.getElementById("detl_telecomCd").innerHTML="";
-			    		document.getElementById("detl_trmnlNo").innerHTML="";
-			    		document.getElementById("detl_makr").innerHTML="";
-			    		document.getElementById("detl_model").innerHTML="";
-		    		}
-		    		
-		    		// 실시간 위치/상태 정보
-		    		var matchDt = result.infoOccDt.match(/(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d*)/)
-		    		
-		    		if (matchDt != null) {
-		    			if (parseInt(matchDt[2]) <= 12 ) {
-		    				document.getElementById("detl_occ_dt").innerHTML = isUndefined("20" + matchDt[1] + "/" + matchDt[2] + "/" + matchDt[3] + " " + matchDt[4] + ":" + matchDt[5] + ":" + matchDt[6]);
-		    			} else {
-		    				document.getElementById("detl_occ_dt").innerHTML = isUndefined(matchDt[1] + matchDt[2] + "/" + matchDt[3] + "/" + matchDt[4] + " " + matchDt[5] + ":" + matchDt[6] + ":" + matchDt[7]);
-		    			}
-		    		}
-		    		
-		    		document.getElementById("detl_y").innerHTML = isUndefined(result.coord.y);
-		    		document.getElementById("detl_x").innerHTML = isUndefined(result.coord.x);
-		    		
-		    		// 물질, 운전자 초기화
-		    		document.getElementById("matterTb").innerHTML='<colgroup><col width="40" /><col width="60" /><col width="" /><col width="100" /><col width="100" /><col width="70" /><col width="70" /></colgroup>';
-					document.getElementById("driverInfoTb").innerHTML = '<colgroup><col width="40" /><col width="100" /><col width="100" /></colgroup>';
-					
-		    		if (data.trnsprtPlan != null) { // 현재보다 이틀 이전의 날짜로 운송중인 차량의 운송계획을 표시하지 않기 위한 임시조치
-			    		if (data.trnsprtPlan.startPrarnde.replace(/\D/g, '').substr(0, 8) >= moment(new Date()).add('-2', 'd').format('YYYYMMDD')) {
-			    			
-				    		// (계획)운송물질
-			    			var detl_matterInfo = data.matterInfo;
-			    			
-							if (detl_matterInfo != null) {
-				    			var arr=[];
-					    		for (var i=0, len=detl_matterInfo.length; i<len; i++) {
-					    			var item = detl_matterInfo[i];
-					    			arr[i]="<tr>" +
-										"<td>"+item.groupSn+"-"+item.sn+"</td>" +
-										"<td>"+item.mttrClNm+"</td>" +
-										"<td class='mttrNm'>"+isUndefinedMatt(item.mttrNm)+"</td>" +
-										"<td>"+isUndefinedMatt(item.casNo)+"</td>" +
-										"<td>"+isUndefinedMatt(item.unNo)+"</td>" +
-										"<td class='ldg'>"+item.ldg+item.cdNm+"</td>" +
-										"<td class='ldg'>"+item.cont+"</td>" +
-										"</tr>";
-					    		}
-					    		document.getElementById("matterTb").innerHTML += arr.join("");
-				    		}
-		
-							// (계획)운전자
-							var detl_driverInfo = data.driverInfo;
-							
-							if (detl_driverInfo!=null) {
-								var arr=[];
-								for (var i=0, len=detl_driverInfo.length; i<len; i++) {
-									var item = detl_driverInfo[i];
-									arr[i]="<tr>" +
-										"<td>"+(i+1)+"</td>" +
-										"<td>"+isUndefinedMatt(item.drverNm)+"</td>" +
-										"<td>"+isUndefinedMatt(item.drverTelno)+"</td>" +
-									//	"<td>"+isUndefinedMatt(item.drverQualfNo)+"</td>" +
-										"</tr>";
-								}
-								document.getElementById("driverInfoTb").innerHTML += arr.join("");
-							}
-			    		}
-		    		} 
-		    		
-		    		var totAbnormal=0,totAcdnt=0;
-
-		    		// 경고 (이상알림)
-		    		var detl_abnormalHis = data.abnormalHis;
-		    		document.getElementById("abnormalHisList").innerHTML = "";
-		    		
-		    		for (i=0, len=detl_abnormalHis.length; i<len; i++) {
-		    			var item3 = detl_abnormalHis[i];
-		    			document.getElementById("abnormalHisList").innerHTML +="<li>"+isUndefined(item3.occdt)+" "+isUndefined(item3.abnrmlNm)+"</li>";
-		    		}
-		    		
-					//운송경로보기 버튼에 사용할 계획번호 초기화
-					document.getElementById("routeBtn").setAttribute("plan_no","");
-					//운송사업자정보
-					document.getElementById("detl_cmpy"     ).innerHTML = "";
-					document.getElementById("detl_chgrNm"   ).innerHTML = "";
-					document.getElementById("detl_bsnmTel"  ).innerHTML = "";
-					document.getElementById("detl_bsnmAddr" ).innerHTML = "";
-					//운송일시
-					document.getElementById("detl_startDt"  ).innerHTML = "";
-					document.getElementById("detl_arvlDt"   ).innerHTML = "";
-					//운송경로
-					document.getElementById("detl_startNm"  ).innerHTML = "";
-					document.getElementById("detl_startAddr").innerHTML = "";
-					document.getElementById("detl_dstnNm"   ).innerHTML = "";
-					document.getElementById("detl_dstnAddr" ).innerHTML = "";
-					
-					// 운송계획정보
-		    		var detl_trnsprtPlan = data.trnsprtPlan;
-
-					if (detl_trnsprtPlan != undefined) { // 현재보다 이틀 이전의 날짜로 운송중인 차량의 운송계획을 표시하지 않기 위한 임시조치
-						if (detl_trnsprtPlan.startPrarnde.replace(/\D/g, '').substr(0, 8) >= moment(new Date()).add('-2', 'd').format('YYYYMMDD')) {
-							//운송경로보기 버튼에 사용할 계획번호
-							document.getElementById("routeBtn").setAttribute("plan_no",isUndefined(detl_trnsprtPlan.trnsprtPlanNo));
-							//운송사업자정보
-							document.getElementById("detl_cmpy").innerHTML=isUndefined(detl_trnsprtPlan.trnsprtBsnmNm);
-							document.getElementById("detl_chgrNm").innerHTML=isUndefined(detl_trnsprtPlan.trnsprtChgrNm);
-							document.getElementById("detl_bsnmTel").innerHTML=isUndefined(detl_trnsprtPlan.trnsprtChgrTelno);
-							document.getElementById("detl_bsnmAddr").innerHTML=isUndefined(detl_trnsprtPlan.trnsprtBsnmAddr)+" "+isUndefined(detl_trnsprtPlan.trnsprtBsnmDetailAddr);
-							// 운송일시
-							document.getElementById("detl_startDt").innerHTML=isUndefined(detl_trnsprtPlan.startPrarnde);
-							document.getElementById("detl_arvlDt").innerHTML=isUndefined(detl_trnsprtPlan.arvlPrarnde);
-							// 운송경로
-							document.getElementById("detl_startNm").innerHTML=isUndefined(detl_trnsprtPlan.strtpntNm);
-							document.getElementById("detl_startAddr").innerHTML=isUndefined(detl_trnsprtPlan.startAddr)+" "+isUndefined(detl_trnsprtPlan.startDetailAddr);
-							document.getElementById("detl_dstnNm").innerHTML=isUndefined(detl_trnsprtPlan.dstnNm);
-							document.getElementById("detl_dstnAddr").innerHTML=isUndefined(detl_trnsprtPlan.dstnAddr)+" "+isUndefined(detl_trnsprtPlan.dstnDetailAddr);
-						}
-					}
-		    	} else {
-		    		console.log("수신된 데이터가 없습니다.");
-		    	}
-		    });
-		});
-	}
-}
-
-/**
- * 좌표값 -> 주소 변환
- * @param x
- * @param y
- */
-function vcCoord2Addr(x, y) {
-    var deferred = $.Deferred();
-
-    try {
-        var data = {
-            service: 'address',
-            request: 'getAddress',
-            key: 'ABB0EA1C-589F-3D7A-B4D4-AD66CA5F58B0',
-            type: 'PARCEL',
-            point: x + "," + y
-        }
-
-        $.ajax({
-            url: "https://api.vworld.kr/req/address",
-            cache: false,
-            dataType: "jsonp",
-            jsonp: "callback",
-            contentType: "application/json",
-            data: data,
-            type: 'POST',
-            beforeSend: function () {
-            },
-            complete: function (xhr, status) {
-            },
-            success: function (jsonObj) {
-            	if (typeof jsonObj == "object" && jsonObj != null && jsonObj != "undefined") {
-            		$("#detl_addr").text(nvl(jsonObj.response.result[0].text, "-"));
-                }
-            },
-            error: function (jxhr, textStatus) {
-            	$("#detl_addr").text("-");
-            }
-        });
-
-    } catch (err) {
-        deferred.reject(err);
-    }
-
-    return deferred.promise();
-}
-
 
 /**
  * @name         : messageMiniBtn
@@ -2192,253 +1478,6 @@ function fnChkByte(obj, maxByte, dp) {
 	} else {
 	    document.getElementById(dp).innerHTML = rbyte;
 	}
-}
-
-// 실시간 업데이트 관련
-eventSource.addEventListener('message', sseCall);
-
-eventSource.addEventListener('myevent', function(e) {
-    // 'myevent' 이벤트의 데이터 처리
-}, false);
-		
-/**
- * @name         : isUndefined
- * @description  : undefined 일 경우 공백을 리턴한다.
- * @date         : 2018. 09. 19.
- * @author	     : kbm
- */
-function isUndefined(txt) {
-	var result=txt;
-	if (result == undefined) {
-		result="";
-	}
-	return result;
-}
-
-/**
- * @name         : isUndefinedMatt
- * @description  : undefined 일 경우 '-'를 리턴한다.
- * @date         : 2018. 09. 19.
- * @author	     : kbm
- */
-function isUndefinedMatt(txt) {
-	var result=txt;
-	if (result == undefined) {
-		result="-";
-	}
-	return result;
-}
-
-/**
- * @name         : markerClick
- * @description  : 마커 클릭 시 팝업 on/off 상태를 수정한다.
- * @date         : 2018. 09. 19.
- * @author	     : kbm
- */
-function markerClick(id, e){
-
-	// var onOff = markerPopOnOff;
-	// var temp = new Map();
-	// temp.set("curr", "Y");
-
-	var target = document.getElementById("list" + id);  //선택한 차량 리스트
-	var ck = $(".mpToggle").hasClass("on");
-
-	if (id != currSelectCarId) {
-		$(".mpop01 .mpopCont dl dd ul li").removeClass("on");
-		$("#carLists").mCustomScrollbar("scrollTo", target);  //해당 차량으로 스크롤이동
-		detlInfoSelect(id, 'N');
-		currSelectCarId = id;
-		$(".mpToggle").removeClass("on");
-		$(".mpbCont, .mpbHeader").show();
-	} else {
-		$(".mpop01 .mpopCont dl dd ul li").removeClass("on");
-		map.closePopup();
-		currSelectCarId = "";
-		$(".mpToggle").addClass("on");
-		$(".mpbCont, .mpbHeader").hide();
-	}
-}
-
-
-/**
- * @name         : defineFeature
- * @description  :
- * @date         : 2018. 09. 19.
- * @author	     : kbm
- */
-function defineFeature(feature, latlng) {
-	var angle = feature.properties.angle;
-    var type = feature.properties.type;
-    var org = feature.properties.org;
-    var id = feature.properties.id;
-    var markerIcon;
-    
-    if (type=="3"){  // 정상운행
-    	markerIcon = tsmap.icon({  // 정상
-		    iconUrl: contextPath+'/images/ico/green'+getOrgImgIcon(org)+'_'+angle+'.png',
-		    iconSize:   [55, 55]
-		});
-    } else if (type=="2") {  //이상운행
-		markerIcon = tsmap.icon({  // 이상
-		    iconUrl: contextPath+'/images/ico/yellow'+getOrgImgIcon(org)+'_'+angle+'.png',
-	    	iconSize:   [55, 55]
-		});
-    }
-
-	if (currSelectCarId != "") {   //하단 실시간위치 표시
-		if (routeMarkerGroup != null && routeMarkerGroup.length == 0) { // 경로보기 상태가 아닐 때만
-			if ( id == currSelectCarId ) {
-				if (bounceTarget != id) {
-                    bounceTarget = id;
-                    return tsmap.marker(latlng, {icon: markerIcon, zIndexOffset: 1000}).setBouncingOptions({
-                        bounceHeight: 20,    // height of the bouncing
-                        bounceSpeed: 40,    // bouncing speed coefficient
-                        exclusive: true,   // if this marker bouncing all others must stop
-                    }).bounce(2);
-                }
-                return tsmap.marker(latlng, {icon: markerIcon, zIndexOffset: 1000});
-			}
-		}
-	}
-    return tsmap.marker(latlng, {icon: markerIcon});
-}
-
-/**
- * @name         : bakeThePie
- * @description  : generates a svg markup for the pie chart
- * @date         : 2018. 09. 19.
- * @author	     : kbm
- */
-function bakeThePie(options) {
-    /*data and valueFunc are required*/
-    if (!options.data || !options.valueFunc) {
-        return '';
-    }
-    var data = options.data,
-        valueFunc = options.valueFunc,
-        r = options.outerRadius?options.outerRadius:28, //Default outer radius = 28px
-        rInner = options.innerRadius?options.innerRadius:r-10, //Default inner radius = r-10
-        strokeWidth = options.strokeWidth?options.strokeWidth:1, //Default stroke is 1
-        pathClassFunc = options.pathClassFunc?options.pathClassFunc:function(){return '';}, //Class for each path
-        pathTitleFunc = options.pathTitleFunc?options.pathTitleFunc:function(){return '';}, //Title for each path
-        pieClass = options.pieClass?options.pieClass:'marker-cluster-pie', //Class for the whole pie
-        pieLabel = options.pieLabel?options.pieLabel:d3.sum(data,valueFunc), //Label for the whole pie
-        pieLabelClass = options.pieLabelClass?options.pieLabelClass:'marker-cluster-pie-label',//Class for the pie label
-        
-        origo = (r+strokeWidth), //Center coordinate
-        w = origo*2, //width and height of the svg element
-        h = w,
-        donut = d3.layout.pie(),
-        arc = d3.svg.arc().innerRadius(rInner).outerRadius(r);
-        
-    //Create an svg element
-    var svg = document.createElementNS(d3.ns.prefix.svg, 'svg');
-    //Create the pie chart
-    var vis = d3.select(svg)
-        .data([data])
-        .attr('class', pieClass)
-        .attr('width', w)
-        .attr('height', h);
-
-    var arcs = vis.selectAll('g.arc')
-        .data(donut.value(valueFunc))
-        .enter().append('svg:g')
-        .attr('class', 'arc')
-        .attr('transform', 'translate(' + origo + ',' + origo + ')');
-    
-    arcs.append('svg:path')
-        .attr('class', pathClassFunc)
-        .attr('stroke-width', strokeWidth)
-        .attr('d', arc)
-        .append('svg:title')
-          .text(pathTitleFunc);
-                
-    vis.append('text')
-        .attr('x',origo)
-        .attr('y',origo)
-        .attr('class', pieLabelClass)
-        .attr('text-anchor', 'middle')
-        /*IE doesn't seem to support dominant-baseline, but setting dy to .3em does the trick*/
-        .attr('dy','.3em')
-        .text(pieLabel);
-    //Return the svg-markup rather than the actual element
-    return serializeXmlNode(svg);
-}
-
-/**
- * @name         : serializeXmlNode
- * @description  : Helper function
- * @date         : 2018. 09. 19.
- * @author	     : kbm
- */
-function serializeXmlNode(xmlNode) {
-    if (typeof window.XMLSerializer != "undefined") {
-        return (new window.XMLSerializer()).serializeToString(xmlNode);
-    } else if (typeof xmlNode.xml != "undefined") {
-        return xmlNode.xml;
-    }
-    return "";
-}
-
-/**
- * @name         : defineClusterIcon
- * @description  :
- * @date         : 2018. 09. 19.
- * @author	     : kbm
- */
-function defineClusterIcon(cluster) {
-    var children = cluster.getAllChildMarkers(),
-        n = children.length, //Get number of markers in cluster
-        strokeWidth = 1, //Set clusterpie stroke width
-        r = rmax-2*strokeWidth-(n<10?12:n<100?8:n<1000?4:0), //Calculate clusterpie radius...
-        iconDim = (r+strokeWidth)*2, //...and divIcon dimensions (leaflet really want to know the size)
-        data = d3.nest() //Build a dataset for the pie chart
-          .key(function(d) { return d.feature.properties[categoryField]; })
-          .entries(children, d3.map),
-        //bake some svg markup
-        html = bakeThePie({data: data,
-                            valueFunc: function(d){return d.values.length;},
-                            strokeWidth: 1,
-                            outerRadius: r,
-                            innerRadius: r-35,
-                            pieClass: 'cluster-pie',
-                            pieLabel: n,
-                            pieLabelClass: 'marker-cluster-pie-label',
-                            pathClassFunc: function(d){return "category-"+d.data.key;},
-                            pathTitleFunc: function(d){return metadata.fields[categoryField].lookup[d.data.key]+' ('+d.data.values.length+' 건)';}
-                          }),
-        //Create a new divIcon and assign the svg markup to the html property
-        myIcon = new tsmap.DivIcon({
-            html: html,
-            className: 'marker-cluster', 
-            iconSize: new tsmap.Point(iconDim, iconDim)
-        });
-    return myIcon;
-}
-
-/**
- * @name         : getOrgImgIcon
- * @description  : 마커 중앙에 표시할 주무부처 아이콘 파일명을 리턴한다.
- * @date         : 2018. 09. 19.
- * @author	     : kbm
- */
-function getOrgImgIcon(org) {
-	var returnTxt = "";
-	
-	if (org == "환경부 화학물질안전원") {
-		returnTxt = "02";  // 화학물질
-	} else if (org == "소방청 소방산업기술원") {
-		returnTxt = "01";  // 소방청
-	} else if (org == "산자부 한국가스안전공사") {
-		returnTxt = "04";  // 고압가스 이미지
-	} else if (org == "환경부 한국환경공단") {
-		returnTxt = "03";  // 지정폐기물
-	} else {
-		returnTxt = "05";  // 빈 이미지
-	}
-	
-	return returnTxt;
 }
 
 /**
@@ -2839,21 +1878,6 @@ function updateReportAccidentStats(acdntTyCd, vin, sn) {
 }
 
 /**
- * @description  : 경고음을 플레이한다.
- */
-var sirenPlay = function() {
-
-	var agent = navigator.userAgent.toLowerCase();
-	if (agent.indexOf("chrome") != -1) {
-		var weaList = '<iframe style="width:0px; height:0px;" src="'+contextPath+'/audio/siren_01.mp3" allow="autoplay">'
-		$('#viewport').html(weaList)
-	} else {
-		document.getElementById("myAudio").play();
-	}
-
-}
-
-/**
  * @description  : 이전운송계획목록 조회
  */
 var searchBefPlan = function() {
@@ -2887,4 +1911,100 @@ var createDialog = function(dialog_id) {
     $("#dialog").html(template({ dialog_id: dialog_id }));
 	return $("#" + dialog_id);
 }
+
+    // 실시간 이동 차량 데이터 표출
+    var realCarInfoList = function(item, stsCd) {
+      var evt_cd = item.evtType==null?"":item.evtType;
+      var acc_cd = item.accCode==null?"":item.accCode;
+      var currEvtAcc = evt_cd+acc_cd;
+      var classOnOff = item.onOff==null?"":item.onOff.toLowerCase();
+      var attrOnOff = item.onOff==null?"":item.onOff.toUpperCase();
+
+      var normal = document.getElementById("normalCarList");
+      var abnormal = document.getElementById("abnormalCarList");
+      var acc = document.getElementById("accCarList");
+      var addStr = "";
+
+      var extElem = null;
+      var idStr = item.id.match(/[A-z0-9]+/);
+
+      if (idStr == null) {
+        return false;
+      }
+
+      extElem = document.getElementById("list" + idStr.toString());
+
+      if (extElem == null) {
+
+        addStr += "<li id='list"+idStr+"' class='sts0"+stsCd+"' @click=\"detlInfoSelect('"+idStr+"', 'N')\" style='cursor:pointer' evtAcc='"+currEvtAcc+"' onOff='"+attrOnOff+"'>";
+        addStr += "<span>"+item.carRegNo+"</span>";
+        addStr += "<div class='btn'>";
+
+        if (this.auth == "M" || this.auth == "S" ) {  // 관리자 및 관제요원 권한
+          addStr += "<a href='javascript:void(0)' class='"+classOnOff+"' @click=\"messageMiniBtn(event, '"+idStr+"');\">";
+        } else {
+          addStr += "<a href='javascript:void(0)' class='"+classOnOff+"' >";
+        }
+
+        addStr += "<img src="+ require('../assets/ptsimages/ico/ico_sns01.png') +" />";
+        addStr += "</a>";
+
+        if(this.auth == "M" || this.auth == "S") {  // 관리자 및 관제요원 권한
+          addStr += "<a href='javascript:void(0)' class='" + classOnOff + "' @click=\"callMiniBtn(event, '" + idStr + "', '" + item.carRegNo + "', '" + item.trnsprtPlanNo + "');\">";
+        }else{
+          addStr += "<a href='javascript:void(0)' class='"+classOnOff+"' >";
+        }
+
+        addStr += "<img src="+ require('../assets/ptsimages/ico/ico_sns02.png') +" />";
+        addStr += "</a>";
+        addStr += "</div>";
+        addStr += "</li>";
+
+        if (stsCd=="3") {
+          normal.insertAdjacentHTML('afterbegin',addStr);
+        } else if (stsCd=="2") { //이상
+          abnormal.insertAdjacentHTML('afterbegin',addStr);
+        } else {  //사고
+          acc.insertAdjacentHTML('afterbegin',addStr);
+        }
+      } else if (extElem.getAttribute("evtAcc") != currEvtAcc) { // 이상/사고/정상 상태가 바뀌었을 때
+        extElem.parentNode.removeChild(extElem);
+
+        addStr = "<li id='list"+ idStr +"' class='sts0"+stsCd+"' @click=\"detlInfoSelect('"+ idStr +"', 'N')\" style='cursor:pointer' evtAcc='"+currEvtAcc+"' onOff='"+attrOnOff+"'>" +
+          "<span>"+item.carRegNo+"</span>" +
+          "<div class='btn'>" +
+          "<a href='javascript:void(0)' class='"+classOnOff+"' @click=\"messageMiniBtn(event, '"+ idStr +"');\">" +
+          "<img src="+ require('@/assets/ptsimages/ico/ico_sns01.png') +" />" +
+          "</a>" +
+          "<a href='javascript:void(0)' class='"+classOnOff+"' @click=\"callMiniBtn(event, '"+ idStr+"', '"+item.carRegNo+"', '"+item.trnsprtPlanNo+"');\">" +
+          "<img src="+ require('@/assets/ptsimages/ico/ico_sns02.png') +" />" +
+          "</a>" +
+          "</div>" +
+          "</li>";
+        if (stsCd=="3") {
+          normal.insertAdjacentHTML('afterbegin',addStr);
+        } else if (stsCd=="2") { //이상
+          abnormal.insertAdjacentHTML('afterbegin',addStr);
+        } else {  //사고
+          acc.insertAdjacentHTML('afterbegin',addStr);
+        }
+      } else {
+        extElem.style.display="block";
+
+        if (extElem.getAttribute("onOff") != attrOnOff) {  // on/off 상태가 바뀌었을 때
+          var nm = extElem.getElementsByTagName("div");
+          var first = nm[0].getElementsByTagName("a")[0];
+          var second = nm[0].getElementsByTagName("a")[1];
+
+          first.classList.remove('on');
+          first.classList.remove('off');
+          second.classList.remove('on');
+          second.classList.remove('off');
+          first.classList.add(classOnOff);
+          second.classList.add(classOnOff);
+          extElem.setAttribute("onOff", attrOnOff);
+        }
+      }
+    },
+
 </script>

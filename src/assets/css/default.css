@@ -202,3 +202,12 @@ div.k-treeview.treeCont{padding:20px;width:calc( 100% - 2px );border:1px solid #
 .legendSet li:nth-child(1) a{background:url(../images/ico/ico_mapset06_n.png) no-repeat left top}
 .legendSet li:nth-child(1) a.on{background:url(../images/ico/ico_mapset06.png) no-repeat left top}
 .legendSet li p{margin-top:2px; font-size:12px; color:#000; background-color:#e5e5e5; text-align:center; line-height:15px;}
+
+
+/* 해양맵 하면서 수정 */
+.mapImg li a{
+	background:url(../images/ico/ico_mapset06_n.png) no-repeat left top
+}
+.mapImg li a.on{
+	background:url(../images/ico/ico_mapset06.png) no-repeat left top
+}
