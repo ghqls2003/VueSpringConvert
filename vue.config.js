@@ -22,6 +22,11 @@ module.exports = {
         target: 'http://localhost:8082',
         changeOrigin: true,
         secure: false
+      },
+      '/req': {
+        target: 'https://api.vworld.kr',
+        changeOrigin: true,
+        secure: false
       }
     },
   }

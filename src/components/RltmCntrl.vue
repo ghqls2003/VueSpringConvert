@@ -25,12 +25,10 @@
             <dl>
               <dt id="abnormalSub">이상운행</dt>
               <dd>
-                <!-- <ul id="accCarList" class="ac"> -->
                 <ul id="accCarList" class="ac">
                 </ul>
-                <!-- <ul id="abnormalCarList"> -->
                 <ul id="abnormalCarList">
-                  <!-- <li v-for="(list) in carTotal" :key="list.idStr" :v-if="list.stsCd == '2'" :id='"list"+list.idStr' :class='"sts0"+list.stsCd' @click="detlInfoSelect(list.idStr, 'N')" :evtAcc="list.currEvtAcc" :onOff="list.attrOnOff">
+                  <li v-for="(list, i) in carTotal2" :key="i" :id='"list"+list.idStr' :class='"sts0"+list.stsCd' @click="detlInfoSelect(list.idStr, 'N')" :evtAcc="list.currEvtAcc" :onOff="list.attrOnOff">
                     <span>{{ list.carRegNo }}</span>
                     <div class='btn'>
                       <a href='javascript:void(0)' :class='list.classOnOff' @click="messageMiniBtn(event, list.idStr)">
@@ -40,14 +38,13 @@
                         <img :src="require('@/assets/ptsimages/ico/ico_sns02.png')" />
                       </a>
                     </div>
-                  </li> -->
+                  </li>
                 </ul>
               </dd>
               <dt id="normalSub">정상운행</dt>
               <dd>
-                <!-- <ul id="normalCarList"> -->
                 <ul id="normalCarList">
-                  <!-- <li v-for="(list) in carTotal" :key="list.idStr" :v-if="list.stsCd == '3'" :id='"list"+list.idStr' :class='"sts0"+list.stsCd' @click="detlInfoSelect(list.idStr, 'N')" :evtAcc="list.currEvtAcc" :onOff="list.attrOnOff">
+                  <li v-for="(list, i) in carTotal3" :key="i" :id='"list"+list.idStr' :class='"sts0"+list.stsCd' @click="detlInfoSelect(list.idStr, 'N')" :evtAcc="list.currEvtAcc" :onOff="list.attrOnOff">
                     <span>{{ list.carRegNo }}</span>
                     <div class='btn'>
                       <a href='javascript:void(0)' :class='list.classOnOff' @click="messageMiniBtn(event, list.idStr)">
@@ -57,7 +54,7 @@
                         <img :src="require('@/assets/ptsimages/ico/ico_sns02.png')" />
                       </a>
                     </div>
-                  </li> -->
+                  </li>
                 </ul>
               </dd>
             </dl>
@@ -262,7 +259,7 @@
 
       <div class="mpBottomBox">
         <div class="box">
-        <a href="javascrtip:void(0)" class="mpToggle on">&nbsp;</a>
+        <a href="javascrtip:void(0)" class="mpToggle on" id="mpToggle">&nbsp;</a>
         <div v-show="this.rowBox == true" class="mpbHeader">
           <span class="tit"  style="line-height:30px;">
             <div style="line-height:20px; margin-top:12px;">운송등록번호: <span id="detlPlanNo"></span>
@@ -476,6 +473,7 @@
 import '@/assets/css/ptscommon.css'
 import '@/assets/css/ptscustom.css'
 import '@/assets/css/ptsdefault.css'
+import '@/assets/css/clusterpies.css'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import 'leaflet/dist/leaflet-src.js'
@@ -484,7 +482,7 @@ import nvl from 'nvl'
 import 'leaflet.markercluster/dist/leaflet.markercluster-src.js'
 import 'leaflet.markercluster/dist/MarkerCluster.css'
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
-// import d3 from '@/assets/js/d3.v3.min.js'
+import d3 from '@/assets/js/d3.v3.min.js'
 import moment from '@/assets/js/moment.min.js'
 
 export default {
@@ -550,19 +548,18 @@ export default {
     accCnt: 0,
     firstViewNoPopup: 'NOPOPUP',
     rmax: 35,  //Maximum radius for cluster pies
-    categoryField: 'type',  //This is the fieldname for marker category (used in the pie and legend)
-    metadata: JSON.parse('{"fields": {"type": {"lookup": {"1": "사고", "2": "이상", "3": "정상"}}}}'),
     accidentState: [],
     bounceTarget: '',
     currTrnsprtPlanNo: '',
     auth: '',
     eventSource: new EventSource("/vc/selectRealTimeCarInfo"),
-    rowBox: true,  // default: false
-    carTotal: [],
+    rowBox: false,  // default: false
+    carTotal2: [],
+    carTotal3: [],
   }),
   setup() {},
   created() {
-    },
+  },
   mounted() {
     this.map = L.map('mapContainer', { center: this.latlng, zoom: 8, layers: [this.tiles]});
     L.control.scale({maxWidth: 200, imperial: false, position: 'bottomleft'}).addTo(this.map);
@@ -574,11 +571,11 @@ export default {
     }, false);
     this.cluster = L.markerClusterGroup({
       maxClusterRadius: 80,
-      // iconCreateFunction: this.defineClusterIcon
+      iconCreateFunction: this.defineClusterIcon
     })
   },
   unmounted() {
-    },
+  },
   beforeDestroy() {
     if (this.map) {
       this.map.remove();
@@ -1274,7 +1271,7 @@ export default {
                 var cur_trnsprtPlanNo = this.isUndefined(targetItem.trnsprtPlanNo);
 
                 if (!document.getElementById("list" + id).classList.contains('on')) {
-                  this.$el.querySelector('mpop01 mpopCont dl dd ul li').classList.remove('on');
+                  this.$el.querySelectorAll('mpop01 mpopCont dl dd ul li').classList.remove('on');
                   document.getElementById("list" + id).classList.add('on');
                 }
 
@@ -1353,36 +1350,38 @@ export default {
         document.getElementById("normalSub").innerHTML="정상운행 ("+normalCnt+"대)";
       this.firstViewNoPopup="POPUPYES";
     },
-    // // defineClusterIcon
-    // defineClusterIcon(cluster) {
-    //   var children = cluster.getAllChildMarkers(),
-    //       n = children.length, //Get number of markers in cluster
-    //       strokeWidth = 1, //Set clusterpie stroke width
-    //       r = this.rmax-2*strokeWidth-(n<10?12:n<100?8:n<1000?4:0), //Calculate clusterpie radius...
-    //       iconDim = (r+strokeWidth)*2, //...and divIcon dimensions (leaflet really want to know the size)
-    //       data = d3.nest() //Build a dataset for the pie chart
-    //         .key(function(d) { return d.feature.properties[this.categoryField]; })
-    //         .entries(children, d3.map),
-    //       //bake some svg markup
-    //       html = this.bakeThePie({data: data,
-    //                           valueFunc: function(d){return d.values.length;},
-    //                           strokeWidth: 1,
-    //                           outerRadius: r,
-    //                           innerRadius: r-35,
-    //                           pieClass: 'cluster-pie',
-    //                           pieLabel: n,
-    //                           pieLabelClass: 'marker-cluster-pie-label',
-    //                           pathClassFunc: function(d){return "category-"+d.data.key;},
-    //                           pathTitleFunc: function(d){return this.metadata.fields[this.categoryField].lookup[d.data.key]+' ('+d.data.values.length+' 건)';}
-    //                         }),
-    //       //Create a new divIcon and assign the svg markup to the html property
-    //       myIcon = new L.DivIcon({
-    //           html: html,
-    //           className: 'marker-cluster', 
-    //           iconSize: new L.Point(iconDim, iconDim)
-    //       });
-    //   return myIcon;
-    // },
+    // defineClusterIcon
+    defineClusterIcon(cluster) {
+      var children = cluster.getAllChildMarkers(),
+          categoryField = 'type',
+          metadata = JSON.parse('{"fields": {"type": {"lookup": {"1": "사고", "2": "이상", "3": "정상"}}}}'),
+          n = children.length, //Get number of markers in cluster
+          strokeWidth = 1, //Set clusterpie stroke width
+          r = this.rmax-2*strokeWidth-(n<10?12:n<100?8:n<1000?4:0), //Calculate clusterpie radius...
+          iconDim = (r+strokeWidth)*2, //...and divIcon dimensions (leaflet really want to know the size)
+          data = d3.nest() //Build a dataset for the pie chart
+            .key(function(d) { return d.feature.properties[categoryField] })
+            .entries(children, d3.map),
+          //bake some svg markup
+          html = this.bakeThePie({data: data,
+                              valueFunc: function(d){return d.values.length;},
+                              strokeWidth: 1,
+                              outerRadius: r,
+                              innerRadius: r-35,
+                              pieClass: 'cluster-pie',
+                              pieLabel: n,
+                              pieLabelClass: 'marker-cluster-pie-label',
+                              pathClassFunc: function(d){return "category-"+d.data.key;},
+                              pathTitleFunc: function(d){return metadata.fields[categoryField].lookup[d.data.key]+' ('+d.data.values.length+' 건)';}
+                            }),
+          //Create a new divIcon and assign the svg markup to the html property
+          myIcon = new L.DivIcon({
+              html: html,
+              className: 'marker-cluster', 
+              iconSize: new L.Point(iconDim, iconDim)
+          });
+      return myIcon;
+    },
     // 실시간 차량 정보 필터링
     carFiltering(item) {
       var delYn = "N";
@@ -1671,100 +1670,6 @@ export default {
       }
       return delYn;
     },
-    // 실시간 이동 차량 데이터 표출
-    realCarInfoList(item, stsCd) {
-      var evt_cd = item.evtType==null?"":item.evtType;
-      var acc_cd = item.accCode==null?"":item.accCode;
-      var currEvtAcc = evt_cd+acc_cd;
-      var classOnOff = item.onOff==null?"":item.onOff.toLowerCase();
-      var attrOnOff = item.onOff==null?"":item.onOff.toUpperCase();
-
-      var normal = document.getElementById("normalCarList");
-      var abnormal = document.getElementById("abnormalCarList");
-      var acc = document.getElementById("accCarList");
-      var addStr = "";
-
-      var extElem = null;
-      var idStr = item.id.match(/[A-z0-9]+/);
-
-      if (idStr == null) {
-        return false;
-      }
-
-      extElem = document.getElementById("list" + idStr.toString());
-
-      if (extElem == null) {
-
-        addStr += "<li id='list"+idStr+"' class='sts0"+stsCd+"' @click=\"detlInfoSelect('"+idStr+"', 'N')\" style='cursor:pointer' evtAcc='"+currEvtAcc+"' onOff='"+attrOnOff+"'>";
-        addStr += "<span>"+item.carRegNo+"</span>";
-        addStr += "<div class='btn'>";
-
-        if (this.auth == "M" || this.auth == "S" ) {  // 관리자 및 관제요원 권한
-          addStr += "<a href='javascript:void(0)' class='"+classOnOff+"' @click=\"messageMiniBtn(event, '"+idStr+"');\">";
-        } else {
-          addStr += "<a href='javascript:void(0)' class='"+classOnOff+"' >";
-        }
-
-        addStr += "<img src="+ require('../assets/ptsimages/ico/ico_sns01.png') +" />";
-        addStr += "</a>";
-
-        if(this.auth == "M" || this.auth == "S") {  // 관리자 및 관제요원 권한
-          addStr += "<a href='javascript:void(0)' class='" + classOnOff + "' @click=\"callMiniBtn(event, '" + idStr + "', '" + item.carRegNo + "', '" + item.trnsprtPlanNo + "');\">";
-        }else{
-          addStr += "<a href='javascript:void(0)' class='"+classOnOff+"' >";
-        }
-
-        addStr += "<img src="+ require('../assets/ptsimages/ico/ico_sns02.png') +" />" +
-        "</a>" +
-        "</div>" +
-        "</li>";
-
-        if (stsCd=="3") {
-          normal.insertAdjacentHTML('afterbegin',addStr);
-        } else if (stsCd=="2") { //이상
-          abnormal.insertAdjacentHTML('afterbegin',addStr);
-        } else {  //사고
-          acc.insertAdjacentHTML('afterbegin',addStr);
-        }
-      } else if (extElem.getAttribute("evtAcc") != currEvtAcc) { // 이상/사고/정상 상태가 바뀌었을 때
-        extElem.parentNode.removeChild(extElem);
-
-        addStr = "<li id='list"+ idStr +"' class='sts0"+stsCd+"' @click=\"detlInfoSelect('"+ idStr +"', 'N')\" style='cursor:pointer' evtAcc='"+currEvtAcc+"' onOff='"+attrOnOff+"'>" +
-          "<span>"+item.carRegNo+"</span>" +
-          "<div class='btn'>" +
-          "<a href='javascript:void(0)' class='"+classOnOff+"' @click=\"messageMiniBtn(event, '"+ idStr +"');\">" +
-          "<img src="+ require('@/assets/ptsimages/ico/ico_sns01.png') +" />" +
-          "</a>" +
-          "<a href='javascript:void(0)' class='"+classOnOff+"' @click=\"callMiniBtn(event, '"+ idStr+"', '"+item.carRegNo+"', '"+item.trnsprtPlanNo+"');\">" +
-          "<img src="+ require('@/assets/ptsimages/ico/ico_sns02.png') +" />" +
-          "</a>" +
-          "</div>" +
-          "</li>";
-        if (stsCd=="3") {
-          normal.insertAdjacentHTML('afterbegin',addStr);
-        } else if (stsCd=="2") { //이상
-          abnormal.insertAdjacentHTML('afterbegin',addStr);
-        } else {  //사고
-          acc.insertAdjacentHTML('afterbegin',addStr);
-        }
-      } else {
-        extElem.style.display="block";
-
-        if (extElem.getAttribute("onOff") != attrOnOff) {  // on/off 상태가 바뀌었을 때
-          var nm = extElem.getElementsByTagName("div");
-          var first = nm[0].getElementsByTagName("a")[0];
-          var second = nm[0].getElementsByTagName("a")[1];
-
-          first.classList.remove('on');
-          first.classList.remove('off');
-          second.classList.remove('on');
-          second.classList.remove('off');
-          first.classList.add(classOnOff);
-          second.classList.add(classOnOff);
-          extElem.setAttribute("onOff", attrOnOff);
-        }
-      }
-    },
     // // 실시간 이동 차량 데이터 표출
     // realCarInfoList(item, stsCd) {
     //   var evt_cd = item.evtType==null?"":item.evtType;
@@ -1772,6 +1677,11 @@ export default {
     //   var currEvtAcc = evt_cd+acc_cd;
     //   var classOnOff = item.onOff==null?"":item.onOff.toLowerCase();
     //   var attrOnOff = item.onOff==null?"":item.onOff.toUpperCase();
+
+    //   var normal = document.getElementById("normalCarList");
+    //   var abnormal = document.getElementById("abnormalCarList");
+    //   var acc = document.getElementById("accCarList");
+    //   var addStr = "";
 
     //   var extElem = null;
     //   var idStr = item.id.match(/[A-z0-9]+/);
@@ -1782,30 +1692,60 @@ export default {
 
     //   extElem = document.getElementById("list" + idStr.toString());
 
-    //     // this.carIdStr.push(idStr);
-    //     // this.carStsCd.push(stsCd);
-    //     // this.carCurrEvtAcc.push(currEvtAcc);
-    //     // this.carAttrOnOff.push(attrOnOff);
-    //     // this.carCarRegNo.push(item.carRegNo);
-    //     // this.carClassOnOff.push(classOnOff);
-    //     // this.carTrnsprtPlanNo.push(item.trnsprtPlanNo);
-    //     // console.log(this.carTotal)
-      
     //   if (extElem == null) {
-    //     if(stsCd == 2){
-    //       this.carTotal.push({'idStr':idStr, 'stsCd':stsCd, 'currEvtAcc':currEvtAcc, 'attrOnOff':attrOnOff, 'carRegNo':item.carRegNo, 'classOnOff':classOnOff, 'trnsprtPlanNo':item.trnsprtPlanNo});
-    //     } else if(stsCd == 3){
-    //       this.carTotal.push({'idStr':idStr, 'stsCd':stsCd, 'currEvtAcc':currEvtAcc, 'attrOnOff':attrOnOff, 'carRegNo':item.carRegNo, 'classOnOff':classOnOff, 'trnsprtPlanNo':item.trnsprtPlanNo});
-    //     }
-        
-    //   } else if (extElem.getAttribute("evtAcc") != currEvtAcc) { // 이상/사고/정상 상태가 바뀌었을 때
-    //     extElem.parentNode.removeChild(extElem);
-    //     if(stsCd == 2){
-    //       this.carTotal.push({'idStr':idStr, 'stsCd':stsCd, 'currEvtAcc':currEvtAcc, 'attrOnOff':attrOnOff, 'carRegNo':item.carRegNo, 'classOnOff':classOnOff, 'trnsprtPlanNo':item.trnsprtPlanNo});
-    //     } else if(stsCd == 3){
-    //       this.carTotal.push({'idStr':idStr, 'stsCd':stsCd, 'currEvtAcc':currEvtAcc, 'attrOnOff':attrOnOff, 'carRegNo':item.carRegNo, 'classOnOff':classOnOff, 'trnsprtPlanNo':item.trnsprtPlanNo});
+
+    //     addStr += "<li id='list"+idStr+"' class='sts0"+stsCd+"' @click=\"detlInfoSelect('"+idStr+"', 'N')\" style='cursor:pointer' evtAcc='"+currEvtAcc+"' onOff='"+attrOnOff+"'>";
+    //     addStr += "<span>"+item.carRegNo+"</span>";
+    //     addStr += "<div class='btn'>";
+
+    //     if (this.auth == "M" || this.auth == "S" ) {  // 관리자 및 관제요원 권한
+    //       addStr += "<a href='javascript:void(0)' class='"+classOnOff+"' @click=\"messageMiniBtn(event, '"+idStr+"');\">";
+    //     } else {
+    //       addStr += "<a href='javascript:void(0)' class='"+classOnOff+"' >";
     //     }
 
+    //     addStr += "<img src="+ require('../assets/ptsimages/ico/ico_sns01.png') +" />";
+    //     addStr += "</a>";
+
+    //     if(this.auth == "M" || this.auth == "S") {  // 관리자 및 관제요원 권한
+    //       addStr += "<a href='javascript:void(0)' class='" + classOnOff + "' @click=\"callMiniBtn(event, '" + idStr + "', '" + item.carRegNo + "', '" + item.trnsprtPlanNo + "');\">";
+    //     }else{
+    //       addStr += "<a href='javascript:void(0)' class='"+classOnOff+"' >";
+    //     }
+
+    //     addStr += "<img src="+ require('../assets/ptsimages/ico/ico_sns02.png') +" />" +
+    //     "</a>" +
+    //     "</div>" +
+    //     "</li>";
+
+    //     if (stsCd=="3") {
+    //       normal.insertAdjacentHTML('afterbegin',addStr);
+    //     } else if (stsCd=="2") { //이상
+    //       abnormal.insertAdjacentHTML('afterbegin',addStr);
+    //     } else {  //사고
+    //       acc.insertAdjacentHTML('afterbegin',addStr);
+    //     }
+    //   } else if (extElem.getAttribute("evtAcc") != currEvtAcc) { // 이상/사고/정상 상태가 바뀌었을 때
+    //     extElem.parentNode.removeChild(extElem);
+
+    //     addStr = "<li id='list"+ idStr +"' class='sts0"+stsCd+"' @click=\"detlInfoSelect('"+ idStr +"', 'N')\" style='cursor:pointer' evtAcc='"+currEvtAcc+"' onOff='"+attrOnOff+"'>" +
+    //       "<span>"+item.carRegNo+"</span>" +
+    //       "<div class='btn'>" +
+    //       "<a href='javascript:void(0)' class='"+classOnOff+"' @click=\"messageMiniBtn(event, '"+ idStr +"');\">" +
+    //       "<img src="+ require('@/assets/ptsimages/ico/ico_sns01.png') +" />" +
+    //       "</a>" +
+    //       "<a href='javascript:void(0)' class='"+classOnOff+"' @click=\"callMiniBtn(event, '"+ idStr+"', '"+item.carRegNo+"', '"+item.trnsprtPlanNo+"');\">" +
+    //       "<img src="+ require('@/assets/ptsimages/ico/ico_sns02.png') +" />" +
+    //       "</a>" +
+    //       "</div>" +
+    //       "</li>";
+    //     if (stsCd=="3") {
+    //       normal.insertAdjacentHTML('afterbegin',addStr);
+    //     } else if (stsCd=="2") { //이상
+    //       abnormal.insertAdjacentHTML('afterbegin',addStr);
+    //     } else {  //사고
+    //       acc.insertAdjacentHTML('afterbegin',addStr);
+    //     }
     //   } else {
     //     extElem.style.display="block";
 
@@ -1824,6 +1764,57 @@ export default {
     //     }
     //   }
     // },
+    // 실시간 이동 차량 데이터 표출
+    realCarInfoList(item, stsCd) {
+      var evt_cd = item.evtType==null?"":item.evtType;
+      var acc_cd = item.accCode==null?"":item.accCode;
+      var currEvtAcc = evt_cd+acc_cd;
+      var classOnOff = item.onOff==null?"":item.onOff.toLowerCase();
+      var attrOnOff = item.onOff==null?"":item.onOff.toUpperCase();
+
+      var extElem = null;
+      var idStr = item.id.match(/[A-z0-9]+/);
+
+      if (idStr == null) {
+        return false;
+      }
+
+      extElem = document.getElementById("list" + idStr.toString());
+      
+      var seList = {'idStr':idStr, 'stsCd':stsCd, 'currEvtAcc':currEvtAcc, 'attrOnOff':attrOnOff, 'carRegNo':item.carRegNo, 'classOnOff':classOnOff, 'trnsprtPlanNo':item.trnsprtPlanNo};
+      if (extElem == null) {
+        if(stsCd == 2){
+          this.carTotal2.push(seList);
+        } else if(stsCd == 3){
+          this.carTotal3.push(seList);
+        }
+        
+      } else if (extElem.getAttribute("evtAcc") != currEvtAcc) { // 이상/사고/정상 상태가 바뀌었을 때
+        extElem.parentNode.removeChild(extElem);
+        if(stsCd == 2){
+          this.carTotal2.push(seList);
+        } else if(stsCd == 3){
+          this.carTotal3.push(seList);
+        }
+
+      } else {
+        extElem.style.display="block";
+
+        if (extElem.getAttribute("onOff") != attrOnOff) {  // on/off 상태가 바뀌었을 때
+          var nm = extElem.getElementsByTagName("div");
+          var first = nm[0].getElementsByTagName("a")[0];
+          var second = nm[0].getElementsByTagName("a")[1];
+
+          first.classList.remove('on');
+          first.classList.remove('off');
+          second.classList.remove('on');
+          second.classList.remove('off');
+          first.classList.add(classOnOff);
+          second.classList.add(classOnOff);
+          extElem.setAttribute("onOff", attrOnOff);
+        }
+      }
+    },
     // defineFeature
     defineFeature(feature, latlng) {
       var angle = feature.properties.angle;
@@ -1880,20 +1871,20 @@ export default {
       }
     },
     // 하단 개별차량 상세정보 조회 및 표출
-    // eslint-disable-next-line
-    detlInfoSelect(id, acdntYn) {
+    detlInfoSelect(id) {
       if (id == this.currSelectCarId) {
         this.currSelectCarId = "";
         this.bounceTarget = "";		// 바운스 타겟 제거
       } else {
         this.currSelectCarId = id;
         var arg = {};
-        arg.id = id;
         
-        axios.get('/vc/selectMongoById', {
+        arg.id = id.toString()
+
+        axios.get('/vc/vueSelectMongoById', {
           data: {},
           params: {
-            id: id
+            id: arg.id
           }
         })
         .then(response => {
@@ -1959,25 +1950,27 @@ export default {
                 this.locErrorFlag = "2";
               }
             }
-            
+            컨트롤러vueSelectDetlInfo에 request 어떻게 주입할지 계속확인하기
             arg.vin = this.isUndefined(result.id);
             arg.trnsprt_plan_no = tr_plan_no;
 
-            axios.get('/vc/selectDetlInfo', {
+            axios.get('/vc/vueSelectDetlInfo', {
               data: {},
               params: {
-                vin: this.isUndefined(result.id),
-                trnsprt_plan_no: tr_plan_no
+                vin: arg.vin,
+                trnsprt_plan_no: arg.trnsprt_plan_no
               }
             })
             .then(response => {
               if(response != null) {
                 var data = response.data;
-                var ck = this.$el.querySelector('mpToggle').classList.contains('on');
+                console.log(data)
+                var idMpToggle = document.getElementById('mpToggle');
+                var ck = idMpToggle.classList.contains('on');
 
                 if(ck){ 
-                  this.$el.querySelector('mpToggle').classList.remove('on');
-                  this.$el.querySelector('mpbCont, mpbHeader').show();
+                  idMpToggle.classList.remove('on');
+                  this.rowBox = true;
                 }
                   
                 //사업자등록정보
@@ -2058,7 +2051,6 @@ export default {
             
                     // (계획)운전자
                     var detl_driverInfo = data.driverInfo;
-                      
                     if (detl_driverInfo!=null) {
                       var arr2=[];
                       for (var j=0; j<detl_driverInfo.length; j++) {
@@ -2152,102 +2144,122 @@ export default {
       }
       return returnTxt;
     },
-    // // 좌표값 -> 주소 변환
-    // vcCoord2Addr(x, y) {
-    //     var deferred = $.Deferred();
+    // 좌표값 -> 주소 변환
+    async vcCoord2Addr(x, y) {
+        // var deferred = $.Deferred();
 
-    //     try {
-    //         var data = {
-    //             service: 'address',
-    //             request: 'getAddress',
-    //             key: 'ABB0EA1C-589F-3D7A-B4D4-AD66CA5F58B0',
-    //             type: 'PARCEL',
-    //             point: x + "," + y
-    //         }
+        // try {
+            // var data = {
+            //     service: 'address',
+            //     request: 'getAddress',
+            //     key: 'ABB0EA1C-589F-3D7A-B4D4-AD66CA5F58B0',
+            //     type: 'PARCEL',
+            //     point: x + "," + y
+            // }
 
-    //         $.ajax({
-    //             url: "https://api.vworld.kr/req/address",
-    //             cache: false,
-    //             dataType: "jsonp",
-    //             jsonp: "callback",
-    //             contentType: "application/json",
-    //             data: data,
-    //             type: 'POST',
-    //             beforeSend: function () {
-    //             },
-    //             complete: function (xhr, status) {
-    //             },
-    //             success: function (jsonObj) {
-    //               if (typeof jsonObj == "object" && jsonObj != null && jsonObj != "undefined") {
-    //                 $("#detl_addr").text(nvl(jsonObj.response.result[0].text, "-"));
-    //                 }
-    //             },
-    //             error: function (jxhr, textStatus) {
-    //               $("#detl_addr").text("-");
-    //             }
-    //         });
+            await axios.get('/req/address', {
+              data: {},
+              params: {
+                service: 'address',
+                request: 'getAddress',
+                key: 'ABB0EA1C-589F-3D7A-B4D4-AD66CA5F58B0',
+                type: 'PARCEL',
+                point: x + "," + y
+              }
+            })
+            .then(response => {
+              if(response != null) {
+                console.log('주소'+response)
+              }
+            })
+            .catch(error => {
+              console.log(error);
+              // deferred.reject(error);
+            })
+            // $.ajax({
+            //     url: "https://api.vworld.kr/req/address",
+            //     cache: false,
+            //     dataType: "jsonp",
+            //     jsonp: "callback",
+            //     contentType: "application/json",
+            //     data: data,
+            //     type: 'POST',
+            //     beforeSend: function () {
+            //     },
+            //     complete: function (xhr, status) {
+            //     },
+            //     success: function (jsonObj) {
+            //       if (typeof jsonObj == "object" && jsonObj != null && jsonObj != "undefined") {
+            //         $("#detl_addr").text(nvl(jsonObj.response.result[0].text, "-"));
+            //         }
+            //     },
+            //     error: function (jxhr, textStatus) {
+            //       $("#detl_addr").text("-");
+            //     }
+            // });
 
-    //     } catch (err) {
-    //         deferred.reject(err);
-    //     }
+        // } catch (err) {
+            // deferred.reject(err);
+        // }
 
-    //     return deferred.promise();
-    // },
+        // return deferred.promise();
+    },
+
     // generates a svg markup for the pie chart
-    // bakeThePie(options) {
-    //     /*data and valueFunc are required*/
-    //     if (!options.data || !options.valueFunc) {
-    //       return '';
-    //     }
-    //     var data = options.data,
-    //         valueFunc = options.valueFunc,
-    //         r = options.outerRadius?options.outerRadius:28, //Default outer radius = 28px
-    //         rInner = options.innerRadius?options.innerRadius:r-10, //Default inner radius = r-10
-    //         strokeWidth = options.strokeWidth?options.strokeWidth:1, //Default stroke is 1
-    //         pathClassFunc = options.pathClassFunc?options.pathClassFunc:function(){return '';}, //Class for each path
-    //         pathTitleFunc = options.pathTitleFunc?options.pathTitleFunc:function(){return '';}, //Title for each path
-    //         pieClass = options.pieClass?options.pieClass:'marker-cluster-pie', //Class for the whole pie
-    //         pieLabel = options.pieLabel?options.pieLabel:d3.sum(data,valueFunc), //Label for the whole pie
-    //         pieLabelClass = options.pieLabelClass?options.pieLabelClass:'marker-cluster-pie-label',//Class for the pie label
-    //         origo = (r+strokeWidth), //Center coordinate
-    //         w = origo*2, //width and height of the svg element
-    //         h = w,
-    //         donut = d3.layout.pie(),
-    //         arc = d3.svg.arc().innerRadius(rInner).outerRadius(r);
+    bakeThePie(options) {
+        /*data and valueFunc are required*/
+        if (!options.data || !options.valueFunc) {
+          return '';
+        }
+        var data = options.data,
+            valueFunc = options.valueFunc,
+            r = options.outerRadius?options.outerRadius:28, //Default outer radius = 28px
+            rInner = options.innerRadius?options.innerRadius:r-10, //Default inner radius = r-10
+            strokeWidth = options.strokeWidth?options.strokeWidth:1, //Default stroke is 1
+            pathClassFunc = options.pathClassFunc?options.pathClassFunc:function(){return '';}, //Class for each path
+            pathTitleFunc = options.pathTitleFunc?options.pathTitleFunc:function(){return '';}, //Title for each path
+            pieClass = options.pieClass?options.pieClass:'marker-cluster-pie', //Class for the whole pie
+            pieLabel = options.pieLabel?options.pieLabel:d3.sum(data,valueFunc), //Label for the whole pie
+            pieLabelClass = options.pieLabelClass?options.pieLabelClass:'marker-cluster-pie-label',//Class for the pie label
+            origo = (r+strokeWidth), //Center coordinate
+            w = origo*2, //width and height of the svg element
+            h = w,
+            donut = d3.layout.pie(),
+            arc = d3.svg.arc().innerRadius(rInner).outerRadius(r);
             
-    //     //Create an svg element
-    //     var svg = document.createElementNS(d3.ns.prefix.svg, 'svg');
-    //     //Create the pie chart
-    //     var vis = d3.select(svg)
-    //         .data([data])
-    //         .attr('class', pieClass)
-    //         .attr('width', w)
-    //         .attr('height', h);
+        //Create an svg element
+        var svg = document.createElementNS(d3.ns.prefix.svg, 'svg');
+        //Create the pie chart
+        var vis = d3.select(svg)
+            .data([data])
+            .attr('class', pieClass)
+            .attr('width', w)
+            .attr('height', h);
 
-    //     var arcs = vis.selectAll('g.arc')
-    //         .data(donut.value(valueFunc))
-    //         .enter().append('svg:g')
-    //         .attr('class', 'arc')
-    //         .attr('transform', 'translate(' + origo + ',' + origo + ')');
+        var arcs = vis.selectAll('g.arc')
+            .data(donut.value(valueFunc))
+            .enter().append('svg:g')
+            .attr('class', 'arc')
+            .attr('transform', 'translate(' + origo + ',' + origo + ')');
         
-    //     arcs.append('svg:path')
-    //         .attr('class', pathClassFunc)
-    //         .attr('stroke-width', strokeWidth)
-    //         .attr('d', arc)
-    //         .append('svg:title')
-    //           .text(pathTitleFunc);
+        arcs.append('svg:path')
+            .attr('class', pathClassFunc)
+            .attr('stroke-width', strokeWidth)
+            .attr('d', arc)
+            .append('svg:title')
+              .text(pathTitleFunc);
                     
-    //     vis.append('text')
-    //         .attr('x',origo)
-    //         .attr('y',origo)
-    //         .attr('class', pieLabelClass)
-    //         .attr('text-anchor', 'middle')
-    //         /*IE doesn't seem to support dominant-baseline, but setting dy to .3em does the trick*/
-    //         .attr('dy','.3em')
-    //         .text(pieLabel);
-    //     //Return the svg-markup rather than the actual element
-    //     return this.serializeXmlNode(svg);
-    // },
+        vis.append('text')
+            .attr('x',origo)
+            .attr('y',origo)
+            .attr('class', pieLabelClass)
+            .attr('text-anchor', 'middle')
+            /*IE doesn't seem to support dominant-baseline, but setting dy to .3em does the trick*/
+            .attr('dy','.3em')
+            .text(pieLabel);
+        //Return the svg-markup rather than the actual element
+        return this.serializeXmlNode(svg);
+    },
     // Helper function
     serializeXmlNode(xmlNode) {
       if (typeof window.XMLSerializer != "undefined") {
@@ -2281,11 +2293,6 @@ export default {
 	// 		$(this).addClass("on");
 	// 	}
 	// })
-
-    // test
-    listCk() {
-
-    },
     // isUndefined
     isUndefined(txt) {
       var result=txt;
